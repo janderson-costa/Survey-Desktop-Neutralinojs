@@ -1,0 +1,7 @@
+{
+	"author": "Janderson Costa",
+	"scripts": {
+		"dev": "sass src/static/styles/index.scss src/style.css --style=compressed --no-source-map --watch | esbuild src/main.js --bundle --outfile=src/index.js --platform=neutral --target=esnext --watch",
+		"start": "neu run"
+	}
+}

@@ -1,0 +1,22 @@
+let global = {
+	neutralino: {
+		config: null,
+	},
+	appData: {
+		tempFileName: null,
+		tempFilePath: null,
+		srvConfig: null,
+		srvFileName: null,
+		srvFilePath: null,
+		state: {
+			opened: false,
+			saved: true,
+		},
+	},
+};
+
+function setGlobal(newGlobal) {
+	global = newGlobal;
+}
+
+export { global, setGlobal };
