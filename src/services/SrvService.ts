@@ -1,5 +1,5 @@
 import constants from '../shared/constants';
-import { global } from '../shared/global';
+import { appData } from '../shared/appData';
 import { neutralinoService } from './NeutralinoService';
 import { SrvConfig, createSrvConfig, createSrvInfo, createSrvTable, createSrvTableRow } from '../models/SrvConfig';
 import { Result, createResult } from '../models/Result';
@@ -45,7 +45,7 @@ function SrvService() {
 			return result;
 		}
 
-		global.appData.tempFileName = tempFileName;
+		appData.tempFileName = tempFileName;
 
 		// Copia o arquivo da planilha para pasta temp
 		result = await neutralinoService.copyFile({
@@ -58,7 +58,7 @@ function SrvService() {
 		}
 
 		// Abre temp.xls(x) no Excel
-		result = await neutralinoService.openFile({ filePath: `${constants.TEMP_FOLDER_PATH}/${tempFileName}` });
+		result = await neutralinoService.openFile({ filePath: `${constants.temp_folder_path}/${tempFileName}` });
 
 		if (result.error) {
 			return result;
@@ -107,8 +107,8 @@ function SrvService() {
 		const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
 		let srvConfig = createSrvConfig();
 
-		global.appData.srvFilePath = filePath;
-		global.appData.srvFileName = fileName;
+		appData.srvFilePath = filePath;
+		appData.srvFileName = fileName;
 
 		// Limpa a pasta temp
 		let result = await neutralinoService.clearFolder({ folderPath: './dist/temp' });
@@ -146,7 +146,7 @@ function SrvService() {
 			}
 		}
 
-		global.appData.tempFileName = tempFileName;
+		appData.tempFileName = tempFileName;
 
 		// Lê o arquivo config.json ou antigos: formdata.json, report.json e options.json
 		const config = await neutralinoService.readFile({ filePath: './dist/temp/config.json' });
@@ -180,7 +180,7 @@ function SrvService() {
 		}
 
 		// Abre spreadsheet.xls(x) no Excel
-		neutralinoService.openFile({ filePath: `${constants.TEMP_FOLDER_PATH}/${tempFileName}` });
+		neutralinoService.openFile({ filePath: `${constants.temp_folder_path}/${tempFileName}` });
 
 		return new Promise<Result<any>>(resolve => {
 			// Aguarda o Excel abrir
@@ -241,7 +241,7 @@ function SrvService() {
 
 		if (success) {
 			// Empacota o arquivo .srv
-			const srvFilePath = global.appData.srvFilePath;
+			const srvFilePath = appData.srvFilePath;
 
 			result = await neutralinoService.zipFile({
 				fromFolderPath: './dist/temp',
@@ -255,14 +255,14 @@ function SrvService() {
 	async function saveWorkbook() {
 		// Salva o arquivo do Excel.
 
-		const tempFileName = global.appData.tempFileName;
+		const tempFileName = appData.tempFileName;
 		const result = createResult();
 
 		if (!tempFileName)
 			return result;
 
 		return Neutralino.os.execCommand(
-			`${constants.EXCEL_API_PATH} workbookPath=${constants.TEMP_FOLDER_PATH}/${tempFileName} method=SaveWorkbook`,
+			`${constants.excel_api_path} workbookPath=${constants.temp_folder_path}/${tempFileName} method=SaveWorkbook`,
 			{ background: false },
 		)
 		.then(out => {
@@ -281,14 +281,14 @@ function SrvService() {
 	async function getSheets() {
 		// Retorna os nomes das planilhas disponíveis no arquivo do Excel.
 
-		const tempFileName = global.appData.tempFileName;
+		const tempFileName = appData.tempFileName;
 		const result: Result<any> = createResult();
 
 		if (!tempFileName)
 			return result;
 
 		return Neutralino.os.execCommand(
-			`${constants.EXCEL_API_PATH} workbookPath=${constants.TEMP_FOLDER_PATH}/${tempFileName} method=GetSheets`,
+			`${constants.excel_api_path} workbookPath=${constants.temp_folder_path}/${tempFileName} method=GetSheets`,
 			{ background: false },
 		)
 		.then(out => {
@@ -307,14 +307,14 @@ function SrvService() {
 	async function closeWorkbook() {
 		// Fecha o arquivo do Excel.
 
-		const tempFileName = global.appData.tempFileName;
+		const tempFileName = appData.tempFileName;
 		const result = createResult();
 
 		if (!tempFileName)
 			return result;
 
 		return Neutralino.os.execCommand(
-			`${constants.EXCEL_API_PATH} workbookPath=${constants.TEMP_FOLDER_PATH}/${tempFileName} method=CloseWorkbook`,
+			`${constants.excel_api_path} workbookPath=${constants.temp_folder_path}/${tempFileName} method=CloseWorkbook`,
 			{ background: false },
 		)
 		.then(out => {

@@ -2,7 +2,7 @@
 
 import { html } from '../lib/html/html.js';
 
-const Icon = (name, options = {}) => {
+const Icon = (name: string, options = { class: [] }) => {
 	const icons = {
 		add: () => html`<i class="icon" data-lucide="plus"></i>`,
 		addGroup: () => html`<i class="icon" data-lucide="circle-plus"></i>`,
@@ -31,14 +31,14 @@ const Icon = (name, options = {}) => {
 
 	const $icon = icons[name]();
 
-	if (options.class) {
-		options.class.forEach(className =>
+	if (options.class.length) {
+		options.class.forEach((className: string) =>
 			$icon.classList.add(className)
 		);
 	}
 
 	return $icon;
 };
-const renderIcons = () => lucide.createIcons();
+const renderIcons = () => window['lucide'].createIcons();
 
 export { Icon, renderIcons };

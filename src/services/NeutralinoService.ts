@@ -1,4 +1,4 @@
-import { global } from '../shared/global';
+import { appData } from '../shared/appData';
 import actions from '../shared/actions';
 import Modal from '../lib/Modal/Modal.js';
 import { createResult } from '../models/Result';
@@ -31,14 +31,14 @@ function NeutralinoService() {
 		const config = await Neutralino.app.getConfig();
 		const name = config.name;
 		const version = config.version;
-		const saved = options.saved == true || global.appData.state.saved;
+		const saved = options.saved == true || appData.state.saved;
 
 		return Neutralino.window.setTitle(`${name} - ${version} ${saved ? '' : '*'}`);
 	}
 
 	async function setOnWindowClose() {
 		return Neutralino.events.on('windowClose', async () => {
-			if (!global.appData.state.saved) {
+			if (!appData.state.saved) {
 				let result = await actions.saveFile(true); // true | false | 'error' | 'canceled'
 
 				if (typeof result == 'boolean')
@@ -67,7 +67,7 @@ function NeutralinoService() {
 			}
 
 			// Limpa o cache
-			await storage('global', null);
+			await storage('appData', null);
 
 			// Fecha a aplicação
 			await Neutralino.app.exit();
@@ -78,20 +78,20 @@ function NeutralinoService() {
 		// const menubar = new nw.Menu({ type: 'menubar' });
 		// const arquivo = new nw.Menu();
 
-		// arquivo.append(new nw.MenuItem({ label: 'Novo', click: global.actions.newFile }));
-		// arquivo.append(new nw.MenuItem({ label: 'Abrir', click: global.actions.openFile }));
-		// arquivo.append(new nw.MenuItem({ label: 'Salvar', click: global.actions.saveFile }));
-		// arquivo.append(new nw.MenuItem({ label: 'Salvar Como', click: global.actions.saveFileAs }));
+		// arquivo.append(new nw.MenuItem({ label: 'Novo', click: actions.newFile }));
+		// arquivo.append(new nw.MenuItem({ label: 'Abrir', click: actions.openFile }));
+		// arquivo.append(new nw.MenuItem({ label: 'Salvar', click: actions.saveFile }));
+		// arquivo.append(new nw.MenuItem({ label: 'Salvar Como', click: actions.saveFileAs }));
 		// arquivo.append(new nw.MenuItem({ type: 'separator' }));
-		// arquivo.append(new nw.MenuItem({ label: 'Enviar por E-mail', click: global.actions.sendByEmail }));
+		// arquivo.append(new nw.MenuItem({ label: 'Enviar por E-mail', click: actions.sendByEmail }));
 		// arquivo.append(new nw.MenuItem({ type: 'separator' }));
-		// arquivo.append(new nw.MenuItem({ label: 'Abrir Local do Arquivo', click: global.actions.openFileLocation }));
+		// arquivo.append(new nw.MenuItem({ label: 'Abrir Local do Arquivo', click: actions.openFileLocation }));
 		// arquivo.append(new nw.MenuItem({ type: 'separator' }));
 		// arquivo.append(new nw.MenuItem({ label: 'Sair', click: () => null }));
 
 		// const exibir = new nw.Menu();
 
-		// exibir.append(new nw.MenuItem({ label: 'Informações do Arquivo', click: global.actions.showFileInfo }));
+		// exibir.append(new nw.MenuItem({ label: 'Informações do Arquivo', click: actions.showFileInfo }));
 		// exibir.append(new nw.MenuItem({ type: 'separator' }));
 		// exibir.append(new nw.MenuItem({ label: 'Atualizar janela', click: nw.Window.get().reloadIgnoringCache }));
 
