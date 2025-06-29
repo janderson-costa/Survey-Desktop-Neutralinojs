@@ -76,7 +76,7 @@ function html(templateString, ...expressions) {
 
 		template.innerHTML = html.trim();
 
-		return template.content.firstChild;
+		return template.content.firstElementChild;
 	}
 
 	function setComponent(element) {

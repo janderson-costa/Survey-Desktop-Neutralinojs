@@ -12,7 +12,7 @@ let global = {
 	},
 };
 
-function setGlobal(newGlobal) {
+function setGlobal(newGlobal: typeof global) {
 	global = newGlobal;
 }
 

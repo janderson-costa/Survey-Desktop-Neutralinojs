@@ -31,7 +31,7 @@ export function Utils() {
 		}
 	}
 
-	function observe(obj, { onChange, onDelete }) {
+	function observe(obj, { onChange, onDelete = null }) {
 		// Observa alterações no objeto e seus filhos recursivamente e retorna um objeto proxy.
 
 		if (typeof obj !== 'object' || obj === null)

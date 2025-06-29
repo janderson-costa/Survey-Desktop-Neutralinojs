@@ -1,7 +1,7 @@
-import { global } from '../shared/global.js';
-import { actions } from '../shared/actions.js';
+import { global } from '../shared/global';
+import actions from '../shared/actions';
 import Modal from '../lib/Modal/Modal.js';
-import Result from '../types/Result.js';
+import { createResult } from '../models/Result';
 
 const neutralinoService = NeutralinoService();
 
@@ -117,7 +117,7 @@ function NeutralinoService() {
 		// nw.Window.get().menu = menubar;
 	}
 
-	async function showFileDialog(options = { title, target, filters }) {
+	async function showFileDialog(options = { title: '', target: '', filters: [] }) {
 		// Abre uma janela de dialogo para selecionar um arquivo, diretório ou salvar como.
 
 		const defaultOptions = {
@@ -127,13 +127,13 @@ function NeutralinoService() {
 				{ name: 'Survey', extensions: ['srv'] },
 			],
 		};
-		const result = Result();
-		let entries;
+		const result = createResult();
+		let entries: any;
 
 		options = { ...defaultOptions, ...options };
 
 		if (options.target == 'open') {
-			entries = await Neutralino.os.showOpenDialog(options.title, { filters: options.filters });
+			entries = await Neutralino.os.showOpenDialog(options.title, { filters: options.filters, multiSelections: false });
 		} else if (options.target == 'save') {
 			entries = await Neutralino.os.showSaveDialog(options.title, { filters: options.filters });
 		} else if (options.target == 'folder') {
@@ -151,10 +151,10 @@ function NeutralinoService() {
 
 	// Sistema de arquivos
 
-	async function readFile(options = {}) {
+	async function readFile(options = { filePath: '' }) {
 		// Lê o conteúdo do arquivo e retorna como string.
 
-		const result = Result();
+		const result = createResult();
 
 		return Neutralino.filesystem.readFile(options.filePath)
 			.then(data => result.data = data)
@@ -162,11 +162,11 @@ function NeutralinoService() {
 			.then(() => result);
 	}
 
-	async function writeFile(options = {}) {
-		const result = Result();
+	async function writeFile(options = { filePath: '', data: '' }) {
+		const result = createResult();
 
 		return Neutralino.filesystem.writeFile(options.filePath, options.data)
-			.then(data => {
+			.then((data: any) => {
 				if (!data.success)
 					result.error = data.message;
 			})
@@ -178,14 +178,14 @@ function NeutralinoService() {
 			});
 	}
 
-	async function renameFile(options = {}) {
+	async function renameFile(options = { filePath: '', name: '' }) {
 		const dir = options.filePath.substring(0, options.filePath.lastIndexOf('/'));
 		const ext = options.filePath.substring(options.filePath.lastIndexOf('.'));
 		const newPath = dir + options.name + ext;
-		const result = Result();
+		const result = createResult();
 
 		return Neutralino.filesystem.move(options.filePath, newPath)
-			.then(data => {
+			.then((data: any) => {
 				if (!data.success)
 					result.error = data.message;
 			})
@@ -197,11 +197,11 @@ function NeutralinoService() {
 			});
 	}
 
-	async function copyFile(options = {}) {
-		const result = Result();
+	async function copyFile(options = { fromFilePath: '', toFilePath: '' }) {
+		const result = createResult();
 
 		return Neutralino.filesystem.copy(options.fromFilePath, options.toFilePath)
-			.then(data => {
+			.then((data: any) => {
 				if (!data.success)
 					result.error = data.message;
 			})
@@ -213,11 +213,11 @@ function NeutralinoService() {
 			});
 	}
 
-	async function openFile(options = {}) {
-		const result = Result();
+	async function openFile(options = { filePath: '' }) {
+		const result = createResult();
 
 		return Neutralino.os.open(options.filePath) // fullpath
-			.then(data => {
+			.then((data: any) => {
 				if (!data.success)
 					result.error = data.message;
 			})
@@ -229,14 +229,14 @@ function NeutralinoService() {
 			});
 	}
 
-	async function clearFolder(options = {}) {
+	async function clearFolder(options = { folderPath: '' }) {
 		// Remomve todos os arquivos da pasta.
 
-		const result = Result();
+		const result = createResult();
 
 		// Remove a pasta
 		await Neutralino.filesystem.remove(options.folderPath)
-			.then(data => {
+			.then((data: any) => {
 				if (!data.success)
 					result.error = data.message;
 			})
@@ -246,7 +246,7 @@ function NeutralinoService() {
 
 		// Recria a pasta
 		await Neutralino.filesystem.createDirectory(options.folderPath)
-			.then(data => {
+			.then((data: any) => {
 				if (!data.success)
 					result.error = data.message;
 			})
@@ -257,8 +257,8 @@ function NeutralinoService() {
 		return result;
 	}
 
-	async function zipFile(options = {}) {
-		const result = Result();
+	async function zipFile(options = { fromFolderPath: '', toFilePath: '' }) {
+		const result = createResult();
 
 		return Neutralino.os.execCommand(
 			`.\\dist\\tools\\7zip\\7za.exe a -tzip -sccUTF-8 "${options.toFilePath}" "${options.fromFolderPath}/*" -y`,
@@ -275,16 +275,16 @@ function NeutralinoService() {
 		});
 	}
 
-	async function unzipFile(options = {}) {
-		const result = Result();
+	async function unzipFile(options = { fromFilePath: '', toFolderPath: '' }) {
+		const result = createResult();
 
 		return Neutralino.os.execCommand(
 			`.\\dist\\tools\\7zip\\7za.exe x -sccUTF-8 "${options.fromFilePath}" -o"${options.toFolderPath}" -y`, // -y: sobreescreve
 			{ background: false }
 		)
-		.then(async out => {
+		.then(async (out: any) => {
 			if (out.stdErr) {
-				result.error = stdErr;
+				result.error = out.stdErr;
 			} else {
 				await Neutralino.os.execCommand(`cmd /c dir "${options.toFolderPath}" /b /a-d`)
 					.then(out => {
@@ -305,13 +305,14 @@ function NeutralinoService() {
 		});
 	}
 
+
 	// Dados
 
-	async function storage(key, value) {
+	async function storage(key: string, value?: any) {
 		// get
 		if (typeof value == 'undefined') {
 			return Neutralino.storage.getData(key)
-				.then(data => {
+				.then((data: any) => {
 					if (!data.message) {
 						if (data != '')
 							return JSON.parse(data);

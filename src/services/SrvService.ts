@@ -1,8 +1,8 @@
-import { global } from '../shared/global.js';
-import constants from '../shared/constants.js';
-import { neutralinoService } from './NeutralinoService.js';
-import { SrvConfig, SrvTable, SrvTableRow, SrvInfo } from '../types/SrvConfig.js';
-import Result from '../types/Result.js';
+import constants from '../shared/constants';
+import { global } from '../shared/global';
+import { neutralinoService } from './NeutralinoService';
+import { SrvConfig, createSrvConfig, createSrvInfo, createSrvTable, createSrvTableRow } from '../models/SrvConfig';
+import { Result, createResult } from '../models/Result';
 
 const srvService = SrvService();
 
@@ -18,8 +18,9 @@ function SrvService() {
 		closeWorkbook,
 	};
 
-	async function newFile(options = { minimizeWindow }) {
+	async function newFile(options = { minimizeWindow: null }) {
 		let result = await neutralinoService.showFileDialog({
+			target: 'open',
 			title: 'Novo',
 			filters: [
 				{ name: 'Excel', extensions: ['xlsx', 'xls'] },
@@ -63,7 +64,7 @@ function SrvService() {
 			return result;
 		}
 
-		return new Promise(resolve => {
+		return new Promise<Result<any>>(resolve => {
 			// Aguarda o Excel abrir
 			const interval = setInterval(async () => {
 				result = await getSheets();
@@ -74,16 +75,16 @@ function SrvService() {
 					clearInterval(interval);
 
 					// Cria o arquivo config.json
-					const srvConfig = SrvConfig();
+					const srvConfig = createSrvConfig();
 
 					sheets.forEach((sheet, index) => {
-						const table = SrvTable();
+						const srvTable = createSrvTable();
 
-						table.id = sheet.Id; // ! Obs.: Id válido somente enquanto o arquivo do Excel estiver aberto
-						table.name = sheet.Name;
-						table.enabled = index == 0; // Habilita a primeira
+						srvTable.id = sheet.Id; // ! Obs.: Id válido somente enquanto o arquivo do Excel estiver aberto
+						srvTable.name = sheet.Name;
+						srvTable.enabled = index == 0; // Habilita a primeira
 
-						srvConfig.data.tables.push(table);
+						srvConfig.data.tables.push(srvTable);
 					});
 
 					// Escreve o arquivo config.json
@@ -92,11 +93,9 @@ function SrvService() {
 						data: JSON.stringify(srvConfig),
 					});
 
-					if (result.error) {
-						return result;
+					if (!result.error) {
+						result.data = srvConfig;
 					}
-
-					result.data = srvConfig;
 
 					resolve(result);
 				}
@@ -106,7 +105,7 @@ function SrvService() {
 
 	async function openFile(filePath) {
 		const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
-		let srvConfig = SrvConfig();
+		let srvConfig = createSrvConfig();
 
 		global.appData.srvFilePath = filePath;
 		global.appData.srvFileName = fileName;
@@ -183,7 +182,7 @@ function SrvService() {
 		// Abre spreadsheet.xls(x) no Excel
 		neutralinoService.openFile({ filePath: `${constants.TEMP_FOLDER_PATH}/${tempFileName}` });
 
-		return new Promise(resolve => {
+		return new Promise<Result<any>>(resolve => {
 			// Aguarda o Excel abrir
 			const interval = setInterval(async () => {
 				result = await getSheets();
@@ -206,13 +205,13 @@ function SrvService() {
 
 						// Para arquivos .srv de versões anteriores, adiciona o restante das planilhas como desabilitadas
 						if (isNewTable) {
-							const table = SrvTable();
+							const srvTable = createSrvTable();
 
-							table.id = sheet.Id;
-							table.name = sheet.Name;
-							table.enabled = false;
+							srvTable.id = sheet.Id;
+							srvTable.name = sheet.Name;
+							srvTable.enabled = false;
 
-							srvConfig.data.tables.push(table);
+							srvConfig.data.tables.push(srvTable);
 						}
 					});
 
@@ -224,7 +223,7 @@ function SrvService() {
 		});
 	}
 
-	async function saveFile(srvConfig) {
+	async function saveFile(srvConfig: SrvConfig) {
 		// Atualiza o arquivo config.json
 		let result = await neutralinoService.writeFile({
 			filePath: './dist/temp/config.json',
@@ -257,7 +256,7 @@ function SrvService() {
 		// Salva o arquivo do Excel.
 
 		const tempFileName = global.appData.tempFileName;
-		const result = Result();
+		const result = createResult();
 
 		if (!tempFileName)
 			return result;
@@ -268,7 +267,7 @@ function SrvService() {
 		)
 		.then(out => {
 			if (out.stdErr) {
-				result.error = stdErr;
+				result.error = out.stdErr;
 			} else if (out.stdOut) {
 				result.data = JSON.parse(out.stdOut).Data;
 			}
@@ -283,7 +282,7 @@ function SrvService() {
 		// Retorna os nomes das planilhas disponíveis no arquivo do Excel.
 
 		const tempFileName = global.appData.tempFileName;
-		const result = Result();
+		const result: Result<any> = createResult();
 
 		if (!tempFileName)
 			return result;
@@ -294,7 +293,7 @@ function SrvService() {
 		)
 		.then(out => {
 			if (out.stdErr) {
-				result.error = stdErr;
+				result.error = out.stdErr;
 			} else if (out.stdOut) {
 				result.data = JSON.parse(out.stdOut).Data;
 			}
@@ -309,7 +308,7 @@ function SrvService() {
 		// Fecha o arquivo do Excel.
 
 		const tempFileName = global.appData.tempFileName;
-		const result = Result();
+		const result = createResult();
 
 		if (!tempFileName)
 			return result;
@@ -320,7 +319,7 @@ function SrvService() {
 		)
 		.then(out => {
 			if (out.stdErr) {
-				result.error = stdErr;
+				result.error = out.stdErr;
 			} else if (out.stdOut) {
 				result.data = JSON.parse(out.stdOut).Data;
 			}
@@ -332,7 +331,7 @@ function SrvService() {
 	}
 }
 
-function parseFormdata(data) {
+function parseFormdata(data: any[]) {
 	// Converte os dados de versão antiga para o novo modelo.
 
 	const planilhas = [...new Set(data.map(data => data.Planilha))]; // Somente os nomes das planilhas únicos
@@ -341,41 +340,41 @@ function parseFormdata(data) {
 	};
 	let lastGroup = '';
 
-	planilhas.forEach(planilha => {
-		const table = SrvTable();
+	planilhas.forEach((planilha: string) => {
+		const srvTable = createSrvTable();
 
-		table.name = planilha;
-		table.rows = [];
+		srvTable.name = planilha;
+		srvTable.rows = [];
 
 		data.filter(data => data.Planilha == planilha).forEach(item => {
 			// Grupo
 			if (item.Grupo && item.Grupo != lastGroup) {
 				lastGroup = item.Grupo;
 
-				const row = SrvTableRow();
+				const srvRow = createSrvTableRow();
 
-				row.isGroup = true;
-				row.name = item.Grupo;
-				table.rows.push(row);
+				srvRow.isGroup = true;
+				srvRow.name = item.Grupo;
+				srvTable.rows.push(srvRow);
 			}
 
 			// Linha
-			const row = SrvTableRow();
+			const srvRow = createSrvTableRow();
 
-			row.id = item.Id;
-			row.objects = JSON.parse(item.Objetos || '[]');
-			row.name = item.Nome;
-			row.description = item.Descricao;
-			row.type = item.Tipo;
-			row.subtype = item.SubTipo;
-			row.value = item.Valor;
-			row.required = item.Obrigatorio == '1';
-			row.readonly = item.Editavel != '1';
+			srvRow.id = item.Id;
+			srvRow.objects = JSON.parse(item.Objetos || '[]');
+			srvRow.name = item.Nome;
+			srvRow.description = item.Descricao;
+			srvRow.type = item.Tipo;
+			srvRow.subtype = item.SubTipo;
+			srvRow.value = item.Valor;
+			srvRow.required = item.Obrigatorio == '1';
+			srvRow.readonly = item.Editavel != '1';
 
-			table.rows.push(row);
+			srvTable.rows.push(srvRow);
 		});
 
-		_data.tables.push(table);
+		_data.tables.push(srvTable);
 	});
 
 	return _data;
@@ -384,15 +383,15 @@ function parseFormdata(data) {
 function parseReport(data) {
 	// Converte os dados de versão antiga para o novo modelo.
 
-	const info = SrvInfo();
+	const srvInfo = createSrvInfo();
 
 	// info.id = data.id;
-	info.createdBy = data.author;
-	info.createdByEmail = data.mailAuthor;
-	info.createdAt = data.created;
+	srvInfo.createdBy = data.author;
+	srvInfo.createdByEmail = data.mailAuthor;
+	srvInfo.createdAt = data.created;
 	// info.modifiedBy = data.modifiedBy;
 	// info.modifiedByEmail = data.mailModifiedBy;
 	// info.modifiedAt = data.modified;
 
-	return info;
+	return srvInfo;
 }

@@ -1,9 +1,9 @@
 Neutralino.init();
 
-import constants from './shared/constants.js';
-import { actions } from './shared/actions.js';
-import { global, setGlobal } from './shared/global.js';
-import { SrvConfig } from './types/SrvConfig.js';
+import constants from './shared/constants';//
+import actions from './shared/actions';
+import { global, setGlobal } from './shared/global';
+import { SrvConfig, SrvTable, createSrvConfig } from './models/SrvConfig';
 import { html } from './lib/html/html.js';
 import { DataTable } from './lib/DataTable/src/index.js';
 import { Utils } from './lib/Utils/Utils.js';
@@ -12,7 +12,7 @@ import { srvService } from './services/SrvService.js';
 import Menu from './lib/Menu/Menu.js';
 import Modal from './lib/Modal/Modal.js';
 import Toast from './lib/Toast/Toast.js';
-import Icon from './components/Icon.js';
+import { Icon, renderIcons } from './components/Icon.js';
 import Buttons from "./components/Buttons.js";
 
 const _columns = {
@@ -35,7 +35,7 @@ let _ui = {
 	tabs: null,
 	itemsTotal: null,
 };
-let _globalProxy;
+let _globalProxy: any;
 let _sheets = [];
 let _dataTables = [];
 let _activeDataTable;
@@ -56,14 +56,14 @@ async function start() {
 	if (globalStored && !_globalProxy)
 		setGlobal(globalStored);
 
-	global.appData.srvConfig = global.appData.srvConfig || SrvConfig();
+	global.appData.srvConfig = global.appData.srvConfig || createSrvConfig();
 	_dataTables = [];
 
 	// Observa alterações em global
 	_observeDataChanges = false;
 
 	_globalProxy = Utils().observe(global, {
-		onChange: async args => {
+		onChange: async () => {
 			if (!_observeDataChanges) return;
 
 			global.appData.state.saved = false;
@@ -85,7 +85,7 @@ async function start() {
 	document.body.appendChild(_ui.layout);
 	loadTables();
 	selectTable();
-	lucide.createIcons();
+	window['lucide'].createIcons();
 	_observeDataChanges = true;
 }
 
@@ -144,6 +144,7 @@ async function openFile() {
 	}
 
 	let result = await neutralinoService.showFileDialog({
+		target: 'open',
 		title: 'Abrir',
 		filters: [{ name: 'Survey', extensions: ['srv'] }],
 	});
@@ -252,7 +253,7 @@ function showFileInfo() {
 // UI
 
 function createUI() {
-	const srvConfig = _globalProxy.appData.srvConfig;
+	const srvConfig: SrvConfig = _globalProxy.appData.srvConfig;
 	const _menu = Menu({ items: [] });
 
 	const _toolbarActionsLeft = [
@@ -260,7 +261,7 @@ function createUI() {
 		{ title: 'Abrir', icon: Icon('open'), onClick: () => openFile() },
 		{ title: 'Salvar', icon: Icon('save'), onClick: () => saveFile() },
 		{ title: 'Informações do arquivo', icon: Icon('info'), onClick: () => showFileInfo() },
-		{ divider: true },
+		{ divider: true, hidden: false },
 		{ title: 'Carregar dados nas planilhas', icon: Icon('load'), onClick: () => console.log('onClick') },
 		{ title: 'Limpar dados das planilhas', icon: Icon('clear'), onClick: () => console.log('onClick') },
 		{ title: 'Enviar por E-mail', icon: Icon('send'), onClick: () => console.log('onClick') },
@@ -269,7 +270,7 @@ function createUI() {
 		{ title: 'Visualizar no dispositivo móvel', icon: Icon('smartphone'), onClick: () => console.log('onClick') }
 	];
 	const _toolbarTable = [
-		{ divider: true },
+		{ divider: true, hidden: false },
 		{ title: 'Adicionar grupo', icon: Icon('addGroup'), onClick: () => console.log('onClick') },
 		{ title: 'Adicionar item', icon: Icon('add'), onClick: () => console.log('onClick') },
 		{ title: 'Mover item selecionado para cima', icon: Icon('arrowUp'), onClick: () => console.log('onClick') },
@@ -290,15 +291,15 @@ function createUI() {
 
 	const $tabs = html`
 		<div class="tabs flex gap-2">${() =>
-			srvConfig.data.tables.filter(x => x.enabled).map((table, index) => {
+			srvConfig.data.tables.filter(x => x.enabled).map((srvTable, index) => {
 				const $tab = html`
-					<button type="button" class="tab button h-10 px-3 whitespace-nowrap" id="${table.id}" @onClick="${() => selectTable(table)}">
-						<span>${table.name}</span>
+					<button type="button" class="tab button h-10 px-3 whitespace-nowrap" id="${srvTable.id}" @onClick="${() => selectTable(srvTable)}">
+						<span>${srvTable.name}</span>
 					</button>
 				`;
 
 				if (_activeDataTable) {
-					if (_activeDataTable.id == table.id)
+					if (_activeDataTable.id == srvTable.id)
 						$tab.classList.add('active');
 				} else if (index == 0) {
 					$tab.classList.add('active');
@@ -316,13 +317,13 @@ function createUI() {
 			if (!_sheets.length) return;
 
 			_menu.options.items = _sheets.map((sheet, index) => {
-				let table = srvConfig.data.tables.find(x => x.id == sheet.Id);
+				const srvTable = srvConfig.data.tables.find(x => x.id == sheet.Id);
 
-				if (table) {
+				if (srvTable) {
 					return ({
-						icon: table.enabled ? Icon('check') : '',
+						icon: srvTable.enabled ? Icon('check') : '',
 						name: sheet.Name,
-						onClick: () => addTable(table, index),
+						onClick: () => addTable(srvTable, index),
 					});
 				}
 			});
@@ -331,7 +332,7 @@ function createUI() {
 				position: 'bottom left',
 			});
 
-			lucide.createIcons();
+			renderIcons();
 		}}">${Icon('gridPlus')}</button>
 	`;
 
@@ -358,7 +359,7 @@ function createUI() {
 	});
 
 	const $itemsTotal = html`<span class="flex items-center h-10">${() => {
-		let total;
+		let total: number = 0;
 
 		$tabs.querySelectorAll('.tab').forEach(($tab, index) => {
 			if ($tab.classList.contains('active')) {
@@ -417,9 +418,9 @@ function createUI() {
 
 // DATATABLES
 
-function createDataTable(table) {
+function createDataTable(srvTable: SrvTable) {
 	return DataTable({
-		id: table.id,
+		id: srvTable.id,
 		data: [],
 		place: null,
 		checkbox: false,
@@ -479,7 +480,7 @@ function createDataTable(table) {
 						`)}</select>
 					`;
 
-					$field.value = value;
+					$field['value'] = value;
 
 					return $field;
 				},
@@ -537,7 +538,7 @@ function createDataTable(table) {
 							`)}</select>
 						`;
 
-						$field.value = value;
+						$field['value'] = value;
 
 						return $field;
 					} else if (item.type == 'Opcão Múltipla') {
@@ -580,11 +581,11 @@ function createDataTable(table) {
 		},
 		onSelectRows: ({ rows }) => {
 			_ui.toolbarTable = _ui.toolbarTable.reload();
-			lucide.createIcons();
+			renderIcons();
 		},
 		onUnselectRows: () => {
 			_ui.toolbarTable = _ui.toolbarTable.reload();
-			lucide.createIcons();
+			renderIcons();
 		},
 		onClickOut: ({ event }) => {
 			// Cancela a chamada de onUnselectRows()
@@ -601,17 +602,17 @@ function loadTables() {
 	});
 }
 
-function addTable(table, index) {
+function addTable(srvTable: SrvTable, index: number) {
 	const srvConfig = _globalProxy.appData.srvConfig;
 	const tablesCount = srvConfig.data.tables.filter(x => x.enabled).length;
 
 	// Garante que pelo menos uma tabela esteja habilitada
-	if (tablesCount == 1 && table.enabled)
+	if (tablesCount == 1 && srvTable.enabled)
 		return;
 
-	table.enabled = !table.enabled;
+	srvTable.enabled = !srvTable.enabled;
 
-	if (table.enabled) {
+	if (srvTable.enabled) {
 		_activeDataTable = _dataTables[index];
 	} else {
 		// Índice do próximo selecionado que está habilitado
@@ -629,19 +630,19 @@ function addTable(table, index) {
 			}
 		}
 
-		table = tables[_index];
+		srvTable = tables[_index];
 		_activeDataTable = _dataTables[_index];
 	}
 
 	_ui.tabs = _ui.tabs.reload();
-	selectTable(table);
+	selectTable(srvTable);
 }
 
-function selectTable(table) {
-	const srvConfig = _globalProxy.appData.srvConfig;
+function selectTable(srvTable?: SrvTable) {
+	const srvConfig: SrvConfig = _globalProxy.appData.srvConfig;
 
-	table = table || srvConfig.data.tables[0];
-	_activeDataTable = _dataTables.find(dt => dt.id == table.id);
+	srvTable = srvTable || srvConfig.data.tables[0];
+	_activeDataTable = _dataTables.find(dt => dt.id == srvTable.id);
 
 	// Tab ativa
 	_ui.tabs = _ui.tabs.reload();
@@ -650,13 +651,13 @@ function selectTable(table) {
 	_dataTables.forEach((dt, _index)=> {
 		dt.element.classList.add('!hidden');
 
-		if (dt.id == table.id)
+		if (dt.id == srvTable.id)
 			dt.element.classList.remove('!hidden');
 	});
 
 	// Recarrega a barra de botões da tabela
 	_ui.toolbarTable = _ui.toolbarTable.reload();
-	lucide.createIcons();
+	renderIcons();
 
 	// Total
 	_ui.itemsTotal = _ui.itemsTotal.reload();

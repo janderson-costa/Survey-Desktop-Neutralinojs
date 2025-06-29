@@ -39,5 +39,6 @@ const Icon = (name, options = {}) => {
 
 	return $icon;
 };
+const renderIcons = () => lucide.createIcons();
 
-export default Icon;
+export { Icon, renderIcons };
