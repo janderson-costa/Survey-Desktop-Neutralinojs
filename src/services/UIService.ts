@@ -1,15 +1,15 @@
 import ui from '../shared/ui';
 import actions from '../shared/actions';
-import { AppData, appData } from '../shared/appData';
-import { SrvConfig, SrvTable } from '../models/SrvConfig';
+import { appData } from '../shared/appData';
+import { SrvTable } from '../models/SrvConfig';
 import { html } from '../lib/html/html.js';
 import Menu from '../lib/Menu/Menu.js';
 import Buttons from '../components/Buttons';
-import { createDataTable } from '../components/DataTable.js';
-import { Icon, renderIcons } from '../components/Icon.js';
+import { createDataTable } from '../components/DataTable';
+import { Icon, renderIcons } from '../components/Icon';
 
-export function create(appDataProxy: AppData) {
-	const srvConfig = appDataProxy.srvConfig;
+export function create() {
+	const srvConfig = appData.proxy.srvConfig;
 	const menu = Menu({ items: [] });
 	const toolbar_actions_left_buttons = [
 		{ title: 'Novo', icon: Icon('new'), onClick: () => actions.newFile() },
@@ -38,7 +38,7 @@ export function create(appDataProxy: AppData) {
 
 	const $toolbar_actions_left_buttons = html`<div>${() => {
 		toolbar_actions_left_buttons.forEach((control, index) => {
-			if (!appDataProxy.state.opened && index > 1)
+			if (!appData.proxy.state.opened && index > 1)
 				control.hidden = true;
 		});
 
@@ -81,7 +81,7 @@ export function create(appDataProxy: AppData) {
 					return ({
 						icon: srvTable.enabled ? Icon('check') : '',
 						name: sheet.Name,
-						onClick: () => addTable(srvConfig, srvTable, index),
+						onClick: () => addTable(srvTable, index),
 					});
 				}
 			});
@@ -137,11 +137,11 @@ export function create(appDataProxy: AppData) {
 					<!-- toolbar-actions -->
 					<div class="toolbar-actions flex justify-between gap-4 px-4 py-4">
 						<div class="left">${$toolbar_actions_left_buttons}</div>
-						<div class="right" @show="${appDataProxy.state.opened}">${$toolbar_actions_right_buttons}</div>
+						<div class="right" @show="${appData.proxy.state.opened}">${$toolbar_actions_right_buttons}</div>
 					</div>
 
 					<!-- toolbar-table -->
-					<div class="toolbar-table flex gap-2 px-4 pb-4" @show="${appDataProxy.state.opened}">
+					<div class="toolbar-table flex gap-2 px-4 pb-4" @show="${appData.proxy.state.opened}">
 						<div class="flex gap-2 w-max-[600px] overflow-x-auto">${$toolbar_table_tabs}</div>
 						${$button_add_table}
 						${$toolbar_table_buttons}
@@ -163,20 +163,21 @@ export function create(appDataProxy: AppData) {
 	ui.layout = $layout;
 	ui.actions_left_buttons = $toolbar_actions_left_buttons;
 	ui.actions_right_buttons = $toolbar_actions_right_buttons;
-	ui.table_buttons = $toolbar_table_buttons;
-	ui.table_tabs = $toolbar_table_tabs;
+	ui.tables_buttons = $toolbar_table_buttons;
+	ui.tables_tabs = $toolbar_table_tabs;
 	ui.tables = $layout.querySelector('.tables');
 }
 
-export function loadTables(appDataProxy: AppData) {
-	const srvConfig = appDataProxy.srvConfig;
+export function loadTables() {
+	const srvConfig = appData.proxy.srvConfig;
 
 	srvConfig.data.tables.forEach((srvTable, index) => {
 		appData.dataTables[index].load(srvTable.rows);
 	});
 }
 
-export function addTable(srvConfig: SrvConfig, srvTable: SrvTable, index: number) {
+export function addTable(srvTable: SrvTable, index: number) {
+	const srvConfig = appData.proxy.srvConfig;
 	const tablesCount = srvConfig.data.tables.filter(x => x.enabled).length;
 
 	// Garante que pelo menos uma tabela esteja habilitada
@@ -207,7 +208,7 @@ export function addTable(srvConfig: SrvConfig, srvTable: SrvTable, index: number
 		ui.activeDataTable = appData.dataTables[_index];
 	}
 
-	ui.table_tabs = ui.table_tabs.reload();
+	ui.tables_tabs = ui.tables_tabs.reload();
 	ui.selectTable(srvTable);
 }
 
@@ -216,7 +217,7 @@ export function selectTable(srvTable?: SrvTable) {
 	ui.activeDataTable = appData.dataTables.find(dt => dt.id == srvTable.id);
 
 	// Tab ativa
-	ui.table_tabs = ui.table_tabs.reload();
+	ui.tables_tabs = ui.tables_tabs.reload();
 
 	// Exibe a tabela especificada
 	appData.dataTables.forEach((dt, _index)=> {
@@ -227,7 +228,7 @@ export function selectTable(srvTable?: SrvTable) {
 	});
 
 	// Recarrega a barra de botões da tabela
-	ui.table_buttons = ui.table_buttons.reload();
+	ui.tables_buttons = ui.tables_buttons.reload();
 	renderIcons();
 
 	// Total

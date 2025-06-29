@@ -2,14 +2,14 @@ Neutralino.init();
 
 import actions from './shared/actions';
 import ui from './shared/ui';
+import utils from './lib/Utils/Utils.js';
 import { appData, setAppData } from './shared/appData';
 import { createSrvConfig } from './models/SrvConfig';
-import { Utils } from './lib/Utils/Utils.js';
-import { neutralinoService } from './services/NeutralinoService.js';
-import { srvService } from './services/SrvService.js';
+import { neutralinoService } from './services/NeutralinoService';
+import { srvService } from './services/SrvService';
 import Modal from './lib/Modal/Modal.js';
 import Toast from './lib/Toast/Toast.js';
-import { renderIcons } from './components/Icon.js';
+import { renderIcons } from './components/Icon';
 
 let _observeDataChanges: boolean;
 
@@ -39,7 +39,7 @@ async function start() {
 	// Observa alterações em appData
 	_observeDataChanges = false;
 
-	appData.proxy = Utils().observe(appData, {
+	appData.proxy = utils.observe(appData, {
 		onChange: async () => {
 			if (!_observeDataChanges) return;
 
@@ -55,12 +55,12 @@ async function start() {
 	if (result.data)
 		appData.sheets = result.data;
 
-	ui.create(appData.proxy);
+	ui.create();
 
 	// Carrega a página
 	document.body.innerHTML = '';
 	document.body.appendChild(ui.layout);
-	ui.loadTables(appData.proxy);
+	ui.loadTables();
 	ui.selectTable();
 	renderIcons();
 	_observeDataChanges = true;
@@ -70,7 +70,7 @@ async function start() {
 // ACÕES
 
 async function newFile() {
-	const state = appData.proxy.state;
+	const state = appData.state;
 
 	// Salva o arquivo atual
 	if (state.opened && !state.saved) {
@@ -108,7 +108,7 @@ async function newFile() {
 }
 
 async function openFile() {
-	const state = appData.proxy.state;
+	const state = appData.state;
 
 	// Salva o arquivo atual
 	if (state.opened && !state.saved) {
@@ -161,7 +161,7 @@ async function openFile() {
 async function saveFile(confirm = false) {
 	// Retorna true | false | 'error' | 'canceled'
 
-	const srvFileName = appData.proxy.srvFileName;
+	const srvFileName = appData.srvFileName;
 
 	// Confirmar se deseja salvar as alterações
 	if (confirm) {
@@ -231,7 +231,7 @@ async function observeSheets() {
 
 	return;
 
-	await Utils().pause(1000);
+	await utils.pause(1000);
 
 	srvService.getSheets().then(async result => {
 		if (result.data) {
@@ -250,7 +250,7 @@ async function observeSheets() {
 		return
 
 		// Arquivo temp.xls(x) fechado pelo usuário
-		if (appData.proxy.state.opened && !result.data) {
+		if (appData.state.opened && !result.data) {
 			Modal({
 				title: 'Survey',
 				content: 'Mantenha o arquivo temp.xls(x) aberto enquanto executa o aplicativo.',
@@ -264,7 +264,7 @@ async function observeSheets() {
 						// 	filePath: constants.TEMP_FOLDER_PATH + '/' + _globalProxy.appData.tempFileName,
 						// });
 
-						await Utils().pause(5000);
+						await utils.pause(5000);
 						observeSheets();
 					}},
 				]

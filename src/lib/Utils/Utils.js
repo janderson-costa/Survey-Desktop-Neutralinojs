@@ -1,14 +1,14 @@
-export function Utils() {
+const utils = Utils();
+
+export default utils;
+
+function Utils() {
 	return {
-		pause,
 		form,
+		pause,
 		observe,
 		css,
 	};
-
-	function pause(time = 1000) {
-		return new Promise(resolve => setTimeout(resolve, time));
-	}
 
 	function form() {
 		return {
@@ -23,12 +23,14 @@ export function Utils() {
 			function autoHeight(textarea) {
 				// Ajusta a altura do textarea automaticamente de acordo com o conteúdo.
 
-				setTimeout(() => {
-					textarea.style.height = 'auto';
-					textarea.style.height = textarea.scrollHeight + 'px';
-				}, 100);
+				textarea.style.height = 'auto';
+				textarea.style.height = textarea.scrollHeight + 'px';
 			}
 		}
+	}
+
+	function pause(time = 1000) {
+		return new Promise(resolve => setTimeout(resolve, time));
 	}
 
 	function observe(obj, { onChange, onDelete = null }) {

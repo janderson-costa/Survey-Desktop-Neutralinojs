@@ -1,7 +1,7 @@
 import { appData } from '../shared/appData';
 import actions from '../shared/actions';
-import Modal from '../lib/Modal/Modal.js';
 import { createResult } from '../models/Result';
+import Modal from '../lib/Modal/Modal.js';
 
 const neutralinoService = NeutralinoService();
 

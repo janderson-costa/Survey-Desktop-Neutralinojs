@@ -1,8 +1,7 @@
-import constants from '../shared/constants.js';
 import ui from '../shared/ui.js';
+import utils from '../lib/Utils/Utils.js';
 import { html } from '../lib/html/html.js';
 import { DataTable } from '../lib/DataTable/src/index.js';
-import { Utils } from '../lib/Utils/Utils.js';
 import { SrvTable } from '../models/SrvConfig.js';
 import { renderIcons } from './Icon.js';
 
@@ -21,6 +20,17 @@ const _columns = {
 	required: { displayName: 'Obrigatório', width: 90 },
 	readonly: { displayName: 'Editável', minWidth: 90 },
 };
+const _fieldTypes = [
+	{ name: '', displayName: 'Texto' },
+	{ name: '', displayName: 'Número' },
+	{ name: '', displayName: 'E-mail' },
+	{ name: '', displayName: 'Data' },
+	{ name: '', displayName: 'Data/Hora' },
+	{ name: '', displayName: 'Opção' },
+	{ name: '', displayName: 'Opção Múltipla' },
+	{ name: '', displayName: 'Imagem' },
+	{ name: '', displayName: 'Assinatura' },
+];
 
 export function createDataTable(props: TableProps) {
 	return DataTable({
@@ -65,11 +75,11 @@ export function createDataTable(props: TableProps) {
 						<textarea rows="1" @onChange="${e => {
 							item.description = e.element.value.trim();
 						}}" @onInput="${e => {
-							Utils().form().field().autoHeight(e.element);
+							utils.form().field().autoHeight(e.element);
 						}}">${value}</textarea>
 					`;
 
-					Utils().form().field().autoHeight($field);
+					utils.form().field().autoHeight($field);
 
 					return $field;
 				}
@@ -79,7 +89,7 @@ export function createDataTable(props: TableProps) {
 					const $field = html`
 						<select @onChange="${e => {
 							item.type = e.element.value;
-						}}">${constants.table_row_field_types.map(type => /*html*/`
+						}}">${_fieldTypes.map(type => /*html*/`
 							<option value="${type.displayName}">${type.displayName}</option>
 						`)}</select>
 					`;
@@ -96,11 +106,11 @@ export function createDataTable(props: TableProps) {
 							<textarea rows="1" @onChange="${e => {
 								item.value = e.element.value;
 							}}" @onInput="${e => {
-								Utils().form().field().autoHeight(e.element);
+								utils.form().field().autoHeight(e.element);
 							}}">${item.value}</textarea>
 						`;
 
-						Utils().form().field().autoHeight($field);
+						utils.form().field().autoHeight($field);
 
 						return $field;
 					} else if (item.type == 'Número') {
@@ -137,7 +147,7 @@ export function createDataTable(props: TableProps) {
 						const $field = html`
 							<select @onChange="${e => {
 								item.value = e.element.value;
-							}}">${constants.table_row_field_types.map(type => /*html*/`
+							}}">${_fieldTypes.map(type => /*html*/`
 								<option value="${type.displayName}">${type.displayName}</option>
 							`)}</select>
 						`;
@@ -184,11 +194,11 @@ export function createDataTable(props: TableProps) {
 			},
 		},
 		onSelectRows: ({ rows }) => {
-			ui.table_buttons = ui.table_buttons.reload();
+			ui.tables_buttons = ui.tables_buttons.reload();
 			renderIcons();
 		},
 		onUnselectRows: () => {
-			ui.table_buttons = ui.table_buttons.reload();
+			ui.tables_buttons = ui.tables_buttons.reload();
 			renderIcons();
 		},
 		onClickOut: ({ event }) => {
