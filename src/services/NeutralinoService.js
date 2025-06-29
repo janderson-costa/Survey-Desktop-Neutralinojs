@@ -1,4 +1,6 @@
-import { global } from '../config/global.js';
+import { global } from '../shared/global.js';
+import { actions } from '../shared/actions.js';
+import Modal from '../lib/Modal/Modal.js';
 import Result from '../types/Result.js';
 
 const neutralinoService = NeutralinoService();
@@ -8,6 +10,7 @@ export { neutralinoService };
 function NeutralinoService() {
 	return {
 		setWindowTitle,
+		setOnWindowClose,
 		setMenubar,
 		showFileDialog,
 		readFile,
@@ -24,12 +27,51 @@ function NeutralinoService() {
 
 	// Janela
 
-	function setWindowTitle() {
-		const config = global.neutralino.config;
+	async function setWindowTitle(options = { saved: null }) {
+		const config = await Neutralino.app.getConfig();
+		const name = config.name;
 		const version = config.version;
-		const title = config.modes.window.title;
+		const saved = options.saved == true || global.appData.state.saved;
 
-		return Neutralino.window.setTitle(`${title} - ${version} ${global.appData.state.saved ? '' : '*'}`);
+		return Neutralino.window.setTitle(`${name} - ${version} ${saved ? '' : '*'}`);
+	}
+
+	async function setOnWindowClose() {
+		return Neutralino.events.on('windowClose', async () => {
+			if (!global.appData.state.saved) {
+				let result = await actions.saveFile(true); // true | false | 'error' | 'canceled'
+
+				if (typeof result == 'boolean')
+					await close();
+			} else {
+				await close();
+			}
+		});
+
+		async function close() {
+			// Fecha o arquivo temp.xls(x)
+			const result = await actions.closeWorkbook();
+
+			if (result.error) {
+				Modal({
+					title: 'Survey',
+					content: `Não foi possível fechar o arquivo temp.xls(x)<br>${result.error}`,
+					buttons: [
+						{ name: 'OK', onClick: async modal => {
+							modal.hide();
+						}},
+					],
+				}).show();
+
+				return;
+			}
+
+			// Limpa o cache
+			await storage('global', null);
+
+			// Fecha a aplicação
+			await Neutralino.app.exit();
+		}
 	}
 
 	function setMenubar() {
@@ -109,141 +151,185 @@ function NeutralinoService() {
 
 	// Sistema de arquivos
 
-	function readFile(options = {}) {
+	async function readFile(options = {}) {
 		// Lê o conteúdo do arquivo e retorna como string.
 
 		const result = Result();
 
-		return fs.readFile(options.filePath, 'utf8').then(data => {
-			result.data = data;
-			return result;
-		}).catch(err => {
-			result.error = err;
-			return result;
-		});
+		return Neutralino.filesystem.readFile(options.filePath)
+			.then(data => result.data = data)
+			.catch(error => result.error = error.message)
+			.then(() => result);
 	}
 
-	async function writeFile (options = {}) {
-		const writeResult = await Neutralino.filesystem.writeFile(options.filePath, options.data);
+	async function writeFile(options = {}) {
 		const result = Result();
 
-		if (!writeResult.success) {
-			result.error = writeResult.message;
-		}
-
-		return result;
+		return Neutralino.filesystem.writeFile(options.filePath, options.data)
+			.then(data => {
+				if (!data.success)
+					result.error = data.message;
+			})
+			.catch(error => {
+				result.error = error.message;
+			})
+			.then(() => {
+				return result;
+			});
 	}
 
-	async function renameFile (options = {}) {
+	async function renameFile(options = {}) {
 		const dir = options.filePath.substring(0, options.filePath.lastIndexOf('/'));
 		const ext = options.filePath.substring(options.filePath.lastIndexOf('.'));
 		const newPath = dir + options.name + ext;
-		const moveResult = await Neutralino.filesystem.move(options.filePath, newPath);
 		const result = Result();
 
-		if (!moveResult.success) {
-			result.error = moveResult.message;
-		}
-
-		return result;
+		return Neutralino.filesystem.move(options.filePath, newPath)
+			.then(data => {
+				if (!data.success)
+					result.error = data.message;
+			})
+			.catch(error => {
+				result.error = error.message;
+			})
+			.then(() => {
+				return result;
+			});
 	}
 
 	async function copyFile(options = {}) {
-		const copyResult = await Neutralino.filesystem.copy(options.fromFilePath, options.toFilePath);
 		const result = Result();
 
-		if (!copyResult.success) {
-			result.error = copyResult.message;
-		}
-
-		return result;
+		return Neutralino.filesystem.copy(options.fromFilePath, options.toFilePath)
+			.then(data => {
+				if (!data.success)
+					result.error = data.message;
+			})
+			.catch(error => {
+				result.error = error.message;
+			})
+			.then(() => {
+				return result;
+			});
 	}
 
 	async function openFile(options = {}) {
-		const openResult = await Neutralino.os.open(options.filePath); // fullpath
 		const result = Result();
 
-		if (!openResult.success) {
-			result.error = openResult.message;
-		}
-
-		return result;
+		return Neutralino.os.open(options.filePath) // fullpath
+			.then(data => {
+				if (!data.success)
+					result.error = data.message;
+			})
+			.catch(error => {
+				result.error = error.message;
+			})
+			.then(() => {
+				return result;
+			});
 	}
 
 	async function clearFolder(options = {}) {
 		// Remomve todos os arquivos da pasta.
 
-		// Remove a pasta
-		const removeResult = await Neutralino.filesystem.remove(options.folderPath);
 		const result = Result();
 
-		if (!removeResult.success) {
-			result.error = removeResult.message;
-		}
+		// Remove a pasta
+		await Neutralino.filesystem.remove(options.folderPath)
+			.then(data => {
+				if (!data.success)
+					result.error = data.message;
+			})
+			.catch(error => {
+				result.error = error.message;
+			});
 
 		// Recria a pasta
-		const createResult = await Neutralino.filesystem.createDirectory(options.folderPath);
-
-		if (!createResult.success) {
-			result.error = createResult.message;
-		}
+		await Neutralino.filesystem.createDirectory(options.folderPath)
+			.then(data => {
+				if (!data.success)
+					result.error = data.message;
+			})
+			.catch(error => {
+				result.error = error.message;
+			});
 
 		return result;
 	}
 
 	async function zipFile(options = {}) {
-		const out = await Neutralino.os.execCommand(
-			`powershell.exe Compress-Archive -Path ${options.fromFolderPath}/* -DestinationPath ${options.toFilePath} -Force`,
-			{ background: false }
-		);
 		const result = Result();
 
-		if (out.stdOut)
-			result.data = JSON.parse(out.stdOut).Data;
-
-		if (out.stdErr)
-			result.error = stdErr;
-
-		return result;
+		return Neutralino.os.execCommand(
+			`.\\dist\\tools\\7zip\\7za.exe a -tzip -sccUTF-8 "${options.toFilePath}" "${options.fromFolderPath}/*" -y`,
+			{ background: false }
+		).then(out => {
+			if (out.stdErr)
+				result.error = out.stdErr;
+		})
+		.catch(error => {
+			result.error = error.message;
+		})
+		.then(() => {
+			return result;
+		});
 	}
 
 	async function unzipFile(options = {}) {
-		const out = await Neutralino.os.execCommand(
-			`powershell.exe Expand-Archive -Path ${options.fromFilePath} -DestinationPath ${options.toFolderPath} -Force`,
-			{ background: false }
-		);
 		const result = Result();
 
-		if (out.stdOut)
-			result.data = JSON.parse(out.stdOut).Data;
+		return Neutralino.os.execCommand(
+			`.\\dist\\tools\\7zip\\7za.exe x -sccUTF-8 "${options.fromFilePath}" -o"${options.toFolderPath}" -y`, // -y: sobreescreve
+			{ background: false }
+		)
+		.then(async out => {
+			if (out.stdErr) {
+				result.error = stdErr;
+			} else {
+				await Neutralino.os.execCommand(`cmd /c dir "${options.toFolderPath}" /b /a-d`)
+					.then(out => {
+						const files = out.stdOut.split(/\r?\n/).filter(Boolean);
 
-		if (out.stdErr)
-			result.error = stdErr;
-
-		return result;
+						result.data = files;
+					})
+					.catch(error => {
+						result.error = error.message;
+					});
+			}
+		})
+		.catch(error => {
+			result.error = error.message;
+		})
+		.then(() => {
+			return result;
+		});
 	}
 
 	// Dados
 
-	function storage(key, value) {
+	async function storage(key, value) {
 		// get
-		if (value == undefined) {
-			return Neutralino.storage.getData(key).then(data => {
-				if (!data.message) {
-					if (data != '')
-						return JSON.parse(data);
+		if (typeof value == 'undefined') {
+			return Neutralino.storage.getData(key)
+				.then(data => {
+					if (!data.message) {
+						if (data != '')
+							return JSON.parse(data);
 
-					return data;
-				}
-			}).catch(() => null);
+						return data;
+					}
+				})
+				.catch(() => null);
 		}
 
 		// set
 		else {
-			if (typeof value != 'string')
+			if (typeof value == 'object' && value != null)
 				value = JSON.stringify(value);
 
-			return Neutralino.storage.setData(key, value).then(() => true).catch(() => false);
+			return Neutralino.storage.setData(key, value)
+				.then(() => true)
+				.catch(() => false);
 		}
 	}
 }

@@ -1,7 +1,4 @@
 let global = {
-	neutralino: {
-		config: null,
-	},
 	appData: {
 		tempFileName: null,
 		tempFilePath: null,

@@ -1,10 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs/main/schemas/neutralino.config.schema.json",
+  "applicationIcon": "dist/icon-24x24.png",
   "applicationId": "survey",
+  "name": "Survey",
   "version": "2.0.0",
   "defaultMode": "window",
   "port": 0,
-  "documentRoot": "/src/",
+  "documentRoot": "/dist/",
   "url": "/",
   "enableServer": true,
   "enableNativeAPI": true,
@@ -35,7 +37,7 @@
   },
   "modes": {
     "window": {
-      "title": "Survey",
+      "title": "",
       "width": 1800,
       "height": 900,
       "minWidth": 1200,
@@ -43,7 +45,7 @@
       "center": true,
       "fullScreen": false,
       "alwaysOnTop": false,
-      "icon": "/src/static/images/icon-16x16.png",
+      "icon": "/dist/icon-16x16.png",
       "enableInspector": true,
       "borderless": false,
       "maximize": false,
@@ -60,7 +62,7 @@
       ]
     },
     "cloud": {
-      "url": "/src/#cloud",
+      "url": "/dist/#cloud",
       "nativeAllowList": [
         "app.*"
       ]
@@ -79,8 +81,17 @@
     "binaryName": "survey",
     "resourcesPath": "/src/",
     "extensionsPath": "/extensions/",
-    "clientLibrary": "/src/lib/neutralino.js",
+    "clientLibrary": "/dist/neutralino.js",
     "binaryVersion": "6.1.0",
     "clientVersion": "6.1.0"
+  },
+  "buildScript": {
+    "win": {
+      "architecture": [
+        "x64"
+      ],
+      "appName": "Survey",
+      "appIcon": "dist/icon-24x24.ico"
+    }
   }
 }

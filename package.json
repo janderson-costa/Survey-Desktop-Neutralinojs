@@ -1,7 +1,9 @@
 {
 	"author": "Janderson Costa",
 	"scripts": {
-		"dev": "sass src/static/styles/index.scss src/style.css --style=compressed --no-source-map --watch | esbuild src/main.js --bundle --outfile=src/index.js --platform=neutral --target=esnext --watch",
-		"start": "neu run"
+		"copy:images": "copy src\\static\\images\\* dist",
+		"dev": "npm run copy:images && sass src/static/styles/index.scss dist/style.css --style=compressed --no-source-map --watch | esbuild src/index.js --bundle --outfile=dist/index.js --platform=neutral --target=esnext --watch",
+		"start": "neu run",
+		"build": "neu build --release"
 	}
 }

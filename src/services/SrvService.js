@@ -1,5 +1,5 @@
-import { global } from '../config/global.js';
-import constants from '../config/constants.js';
+import { global } from '../shared/global.js';
+import constants from '../shared/constants.js';
 import { neutralinoService } from './NeutralinoService.js';
 import { SrvConfig, SrvTable, SrvTableRow, SrvInfo } from '../types/SrvConfig.js';
 import Result from '../types/Result.js';
@@ -38,7 +38,7 @@ function SrvService() {
 		const tempFileName = 'temp' + ext;
 
 		// Limpa a pasta temp
-		result = await neutralinoService.clearFolder({ folderPath: './temp' });
+		result = await neutralinoService.clearFolder({ folderPath: './dist/temp' });
 
 		if (result.error) {
 			return result;
@@ -49,7 +49,7 @@ function SrvService() {
 		// Copia o arquivo da planilha para pasta temp
 		result = await neutralinoService.copyFile({
 			fromFilePath: filePath,
-			toFilePath: './temp/' + tempFileName,
+			toFilePath: './dist/temp/' + tempFileName,
 		});
 
 		if (result.error) {
@@ -88,7 +88,7 @@ function SrvService() {
 
 					// Escreve o arquivo config.json
 					result = await neutralinoService.writeFile({
-						filePath: './temp/config.json',
+						filePath: './dist/temp/config.json',
 						data: JSON.stringify(srvConfig),
 					});
 
@@ -104,30 +104,15 @@ function SrvService() {
 		});
 	}
 
-	async function openFile(options = { minimizeWindow }) {
-		let result = await neutralinoService.showFileDialog({
-			title: 'Abrir',
-			filters: [
-				{ name: 'Survey', extensions: ['srv'] },
-			],
-		});
-
-		if (result.canceled) {
-			return result;
-		}
-
-		if (options.minimizeWindow)
-			options.minimizeWindow();
-
+	async function openFile(filePath) {
+		const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
 		let srvConfig = SrvConfig();
-		const filePath = result.data[0];
-		const fileName = filePath.substring(filePath.lastIndexOf('\\') + 1);
 
 		global.appData.srvFilePath = filePath;
 		global.appData.srvFileName = fileName;
 
 		// Limpa a pasta temp
-		result = await neutralinoService.clearFolder({ folderPath: './temp' });
+		let result = await neutralinoService.clearFolder({ folderPath: './dist/temp' });
 
 		if (result.error) {
 			return result;
@@ -136,7 +121,7 @@ function SrvService() {
 		// Extrai o conteúdo na pasta temp
 		result = await neutralinoService.unzipFile({
 			fromFilePath: filePath,
-			toFolderPath: './temp',
+			toFolderPath: './dist/temp',
 		});
 
 		if (result.error) {
@@ -153,8 +138,8 @@ function SrvService() {
 			tempFileName = 'temp' + ext;
 
 			result = await neutralinoService.copyFile({
-				fromFilePath: './temp/' + oldTempFileName,
-				toFilePath: './temp/' + tempFileName,
+				fromFilePath: './dist/temp/' + oldTempFileName,
+				toFilePath: './dist/temp/' + tempFileName,
 			});
 
 			if (result.error) {
@@ -165,13 +150,13 @@ function SrvService() {
 		global.appData.tempFileName = tempFileName;
 
 		// Lê o arquivo config.json ou antigos: formdata.json, report.json e options.json
-		const config = await neutralinoService.readFile({ filePath: './temp/config.json' });
+		const config = await neutralinoService.readFile({ filePath: './dist/temp/config.json' });
 
 		if (config.data) {
 			srvConfig = JSON.parse(config.data);
 		} else {
-			const formdata = await neutralinoService.readFile({ filePath: './temp/formdata.json' });
-			const report = await neutralinoService.readFile({ filePath: './temp/report.json' });
+			const formdata = await neutralinoService.readFile({ filePath: './dist/temp/formdata.json' });
+			const report = await neutralinoService.readFile({ filePath: './dist/temp/report.json' });
 
 			if (formdata.data) {
 				const data = JSON.parse(formdata.data);
@@ -186,7 +171,7 @@ function SrvService() {
 			}
 
 			result = await neutralinoService.writeFile({
-				filePath: './temp/config.json',
+				filePath: './dist/temp/config.json',
 				data: JSON.stringify(srvConfig),
 			});
 
@@ -242,7 +227,7 @@ function SrvService() {
 	async function saveFile(srvConfig) {
 		// Atualiza o arquivo config.json
 		let result = await neutralinoService.writeFile({
-			filePath: './temp/config.json',
+			filePath: './dist/temp/config.json',
 			data: JSON.stringify(srvConfig),
 		});
 
@@ -260,7 +245,7 @@ function SrvService() {
 			const srvFilePath = global.appData.srvFilePath;
 
 			result = await neutralinoService.zipFile({
-				fromFolderPath: './temp',
+				fromFolderPath: './dist/temp',
 				toFilePath: srvFilePath,
 			});
 		}
@@ -277,18 +262,21 @@ function SrvService() {
 		if (!tempFileName)
 			return result;
 
-		const out = await Neutralino.os.execCommand(
+		return Neutralino.os.execCommand(
 			`${constants.EXCEL_API_PATH} workbookPath=${constants.TEMP_FOLDER_PATH}/${tempFileName} method=SaveWorkbook`,
-			{ background: false }
-		);
-
-		if (out.stdOut)
-			result.data = JSON.parse(out.stdOut).Data;
-
-		if (out.stdErr)
-			result.error = stdErr;
-
-		return result;
+			{ background: false },
+		)
+		.then(out => {
+			if (out.stdErr) {
+				result.error = stdErr;
+			} else if (out.stdOut) {
+				result.data = JSON.parse(out.stdOut).Data;
+			}
+		})
+		.catch(error => {
+			result.error = error.message;
+		})
+		.then(() => result);
 	}
 
 	async function getSheets() {
@@ -300,18 +288,21 @@ function SrvService() {
 		if (!tempFileName)
 			return result;
 
-		const out = await Neutralino.os.execCommand(
+		return Neutralino.os.execCommand(
 			`${constants.EXCEL_API_PATH} workbookPath=${constants.TEMP_FOLDER_PATH}/${tempFileName} method=GetSheets`,
-			{ background: false }
-		);
-
-		if (out.stdOut)
-			result.data = JSON.parse(out.stdOut).Data;
-
-		if (out.stdErr)
-			result.error = stdErr;
-
-		return result;
+			{ background: false },
+		)
+		.then(out => {
+			if (out.stdErr) {
+				result.error = stdErr;
+			} else if (out.stdOut) {
+				result.data = JSON.parse(out.stdOut).Data;
+			}
+		})
+		.catch(error => {
+			result.error = error.message;
+		})
+		.then(() => result);
 	}
 
 	async function closeWorkbook() {
@@ -323,18 +314,21 @@ function SrvService() {
 		if (!tempFileName)
 			return result;
 
-		const out = await Neutralino.os.execCommand(
+		return Neutralino.os.execCommand(
 			`${constants.EXCEL_API_PATH} workbookPath=${constants.TEMP_FOLDER_PATH}/${tempFileName} method=CloseWorkbook`,
-			{ background: false }
-		);
-
-		if (out.stdOut)
-			result.data = JSON.parse(out.stdOut).Data;
-
-		if (out.stdErr)
-			result.error = stdErr;
-
-		return result;
+			{ background: false },
+		)
+		.then(out => {
+			if (out.stdErr) {
+				result.error = stdErr;
+			} else if (out.stdOut) {
+				result.data = JSON.parse(out.stdOut).Data;
+			}
+		})
+		.catch(error => {
+			result.error = error.message;
+		})
+		.then(() => result);
 	}
 }
 

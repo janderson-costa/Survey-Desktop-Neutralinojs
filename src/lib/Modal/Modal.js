@@ -147,8 +147,7 @@ export default function Modal(options) {
 		}
 
 		if (event.key == 'Escape') {
-			if (options.hideOut)
-				destroy();
+			destroy();
 		}
 	}
 }
