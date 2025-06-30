@@ -21,6 +21,7 @@ const defaultOptions = {
 			onClick: function
 		}
 	]*/
+	onHide: null,
 };
 
 export default function Modal(options) {
@@ -133,6 +134,9 @@ export default function Modal(options) {
 
 		$overlay.classList.remove('modal-visible');
 		$overlay.classList.add('modal-invisible');
+
+		if (options.onHide)
+			options.onHide(_context);
 
 		setTimeout(() => {
 			$overlay.remove();

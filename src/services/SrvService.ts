@@ -10,48 +10,32 @@ export { srvService };
 
 function SrvService() {
 	return {
-		newFile,
-		openFile,
+		newSrv,
+		openSrv,
+		saveSrv,
 		getSheets,
-		saveFile,
 		saveWorkbook,
 		closeWorkbook,
 	};
 }
 
-async function newFile(options = { minimizeWindow: null }) {
-	let result = await neutralinoService.showFileDialog({
-		target: 'open',
-		title: 'Novo',
-		filters: [
-			{ name: 'Excel', extensions: ['xlsx', 'xls'] },
-		],
-	});
-
-	if (result.canceled) {
-		return result;
-	}
-
-	if (options.minimizeWindow)
-		options.minimizeWindow();
-
-	const filePath = result.data[0];
+async function newSrv(filePath: string) {
 	const ext = filePath.substring(filePath.lastIndexOf('.'));
-	const tempFileName = 'temp' + ext;
+	const excelFileName = 'temp' + ext;
 
 	// Limpa a pasta temp
-	result = await neutralinoService.clearFolder({ folderPath: './dist/temp' });
+	let result = await neutralinoService.clearFolder({ folderPath: constants.temp_folder_path });
 
 	if (result.error) {
 		return result;
 	}
 
-	appData.tempFileName = tempFileName;
+	appData.excelFileName = excelFileName;
 
 	// Copia o arquivo da planilha para pasta temp
 	result = await neutralinoService.copyFile({
 		fromFilePath: filePath,
-		toFilePath: './dist/temp/' + tempFileName,
+		toFilePath: `${constants.temp_folder_path}/${excelFileName}`,
 	});
 
 	if (result.error) {
@@ -59,7 +43,7 @@ async function newFile(options = { minimizeWindow: null }) {
 	}
 
 	// Abre temp.xls(x) no Excel
-	result = await neutralinoService.openFile({ filePath: `${constants.temp_folder_path}/${tempFileName}` });
+	result = await neutralinoService.openFile({ filePath: `${constants.temp_folder_path}/${excelFileName}` });
 
 	if (result.error) {
 		return result;
@@ -104,7 +88,7 @@ async function newFile(options = { minimizeWindow: null }) {
 	});
 }
 
-async function openFile(filePath) {
+async function openSrv(filePath: string) {
 	const fileName = filePath.substring(filePath.lastIndexOf('/') + 1);
 	let srvConfig = createSrvConfig();
 
@@ -147,7 +131,7 @@ async function openFile(filePath) {
 		}
 	}
 
-	appData.tempFileName = tempFileName;
+	appData.excelFileName = tempFileName;
 
 	// Lê o arquivo config.json ou antigos: formdata.json, report.json e options.json
 	const config = await neutralinoService.readFile({ filePath: './dist/temp/config.json' });
@@ -224,10 +208,10 @@ async function openFile(filePath) {
 	});
 }
 
-async function saveFile(srvConfig: SrvConfig) {
+async function saveSrv(srvConfig: SrvConfig) {
 	// Atualiza o arquivo config.json
 	let result = await neutralinoService.writeFile({
-		filePath: './dist/temp/config.json',
+		filePath: `${constants.temp_folder_path}/config.json`,
 		data: JSON.stringify(srvConfig),
 	});
 
@@ -240,14 +224,63 @@ async function saveFile(srvConfig: SrvConfig) {
 
 	let success = result.data;
 
-	if (success) {
-		// Empacota o arquivo .srv
-		const srvFilePath = appData.srvFilePath;
+	if (!success) {
+		result.error = 'Não foi possível salvar a planilha temp.xls(x).<br><br>Verifique se: <br> - O arquivo está aberto no  Excel.<br> - Não há subjanelas abertas dentro do Excel.<br> - Células em modo de edição.<br> - Outro fator que esteja impedindo o salvamento<br><br>Tente salvar novamente.';
+		return result;
+	}
 
-		result = await neutralinoService.zipFile({
-			fromFolderPath: './dist/temp',
-			toFilePath: srvFilePath,
+	// Cria a pasta ./dist/temp/<saved>
+	// Obs.: Necessáro para que não falhe ao zipar com 7zip
+	const savedFolderPath = `${constants.temp_folder_path}/saved`;
+
+	// Remove ./saved
+	try {
+		result = await neutralinoService.remove({ path: savedFolderPath });
+	} catch (error) {}
+
+	// Cria ./saved
+	result = await neutralinoService.createDirectory({ path: savedFolderPath });
+
+	if (result.error) {
+		return result;
+	}
+
+	// Copia os arquivos para a nova pasta ./dist/temp/temp
+	result = await neutralinoService.readDirectory({ path: constants.temp_folder_path });
+
+	if (result.error) {
+		return result;
+	}
+
+	const entries = result.data || [];
+
+	entries.filter(x =>
+		x.type.toLowerCase() == 'file' &&
+		!x.entry.startsWith('~') 
+	).forEach(async (file: any) => {
+		result = await neutralinoService.copyFile({
+			fromFilePath: file.path,
+			toFilePath: `${savedFolderPath}/${file.entry}`,
 		});
+	});
+
+	// Empacota o arquivo .srv para pasta ./dist/temp/saved
+	result = await neutralinoService.zipFile({
+		fromFolderPath: savedFolderPath,
+		toFilePath: `${savedFolderPath}/${appData.srvFileName}`,
+	});
+
+	if (!result.error) {
+		// Remove o arquivo .srv original
+		result = await neutralinoService.remove({ path: appData.srvFilePath });
+
+		if (!result.error) {
+			// Copia o arquivo .srv atualizado para a pasta de origem
+			result = await neutralinoService.copyFile({
+				fromFilePath: `${savedFolderPath}/${appData.srvFileName}`,
+				toFilePath: appData.srvFilePath,
+			});
+		}
 	}
 
 	return result;
@@ -256,7 +289,7 @@ async function saveFile(srvConfig: SrvConfig) {
 async function saveWorkbook() {
 	// Salva o arquivo do Excel.
 
-	const tempFileName = appData.tempFileName;
+	const tempFileName = appData.excelFileName;
 	const result = createResult();
 
 	if (!tempFileName)
@@ -282,7 +315,7 @@ async function saveWorkbook() {
 async function getSheets() {
 	// Retorna os nomes das planilhas disponíveis no arquivo do Excel.
 
-	const tempFileName = appData.tempFileName;
+	const tempFileName = appData.excelFileName;
 	const result: Result<any> = createResult();
 
 	if (!tempFileName)
@@ -308,7 +341,7 @@ async function getSheets() {
 async function closeWorkbook() {
 	// Fecha o arquivo do Excel.
 
-	const tempFileName = appData.tempFileName;
+	const tempFileName = appData.excelFileName;
 	const result = createResult();
 
 	if (!tempFileName)

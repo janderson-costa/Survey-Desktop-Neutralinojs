@@ -11,6 +11,7 @@ import { srvService } from './services/SrvService';
 import Modal from './lib/Modal/Modal.js';
 import Toast from './lib/Toast/Toast.js';
 import { renderIcons } from './components/Icon';
+import constants from './shared/constants';
 
 let _observeDataChanges: boolean;
 
@@ -25,7 +26,7 @@ neutralinoService.setMenubar();
 neutralinoService.setOnWindowClose();
 
 start();
-//observeSheets();
+observeSheets();
 
 async function start() {
 	const appDataStored = await neutralinoService.storage('appData');
@@ -41,10 +42,12 @@ async function start() {
 	_observeDataChanges = false;
 
 	proxy.appData = utils.observe(appData, {
-		onChange: async () => {
+		onChange: async (args: any) => {
 			if (!_observeDataChanges) return;
 
-			appData.state.saved = false;
+			if (args.prop != 'saved')
+				appData.state.saved = false;
+
 			neutralinoService.setWindowTitle();
 			neutralinoService.storage('appData', appData);
 		},
@@ -68,96 +71,128 @@ async function start() {
 
 // ACÕES
 
-async function newFile() {
-	const state = appData.state;
+async function newFile(confirmSave = true) {
+	try {
+		appData.state.creating = true;
 
-	// Salva o arquivo atual
-	if (state.opened && !state.saved) {
-		const saved = await saveFile(!state.saved);
+		const state = appData.state;
 
-		if (saved == true)
-			newFile();
+		// Salva o arquivo atual
+		if (confirmSave && !state.saved) {
+			const saved = await saveFile(!state.saved);
 
-		return;
+			// Salvar | Não salvar
+			if (typeof saved == 'boolean')
+				newFile(false);
+
+			return;
+		}
+
+		// Abre o seletor de arquivos
+		let result = await neutralinoService.showFileDialog({
+			target: 'open',
+			title: 'Novo',
+			filters: [
+				{ name: 'Excel', extensions: ['xlsx', 'xls'] },
+			],
+		});
+
+		if (result.canceled) {
+			return result;
+		}
+
+		const filePath = result.data[0];
+
+		// Fecha o arquivo atual
+		result = await srvService.closeWorkbook();
+
+		if (result.error) {
+			Toast({ message: `Não foi possível fechar o arquivo temp.xls(x)<br>${result.error}` }).show();
+			return;
+		}
+
+		await Neutralino.window.minimize();
+
+		// Cria o novo arquivo
+		result = await srvService.newSrv(filePath);
+
+		await Neutralino.window.unminimize();
+
+		if (result.error) {
+			Toast({ message: `Falha ao criar o arquivo.<br>${result.error}` }).show();
+			return;
+		}
+
+		appData.srvConfig = result.data;
+		appData.state.opened = true;
+		neutralinoService.setWindowTitle(false);
+		start();
+	} finally {
+		appData.state.creating = false;
 	}
-
-	// Fecha o arquivo atual
-	let result = await srvService.closeWorkbook();
-
-	if (result.error) {
-		Toast({ message: `Não foi possível fechar o arquivo temp.xls(x)<br>${result.error}` }).show();
-		return;
-	}
-
-	// Cria o novo arquivo
-	result = await srvService.newFile({
-		minimizeWindow: () => Neutralino.window.minimize(),
-	});
-
-	await Neutralino.window.unminimize();
-
-	if (result.canceled) return;
-	if (result.error) {
-		Toast({ message: `Falha ao criar o arquivo.<br>${result.error}` }).show();
-		return;
-	}
-
-	appData.srvConfig = result.data;
-	start();
 }
 
-async function openFile() {
-	const state = appData.state;
+async function openFile(confirmSave = true) {
+	try {
+		appData.state.opening = true;
 
-	// Salva o arquivo atual
-	if (state.opened && !state.saved) {
-		const saved = await saveFile(true);
+		const state = appData.state;
 
-		if (saved == true)
-			newFile();
+		// Salva o arquivo atual
+		if (confirmSave && !state.saved) {
+			const saved = await saveFile(!state.saved);
 
-		return;
+			// Salvar | Não salvar
+			if (typeof saved == 'boolean')
+				openFile(false);
+
+			return;
+		}
+
+		// Abre o seletor de arquivos
+		let result = await neutralinoService.showFileDialog({
+			target: 'open',
+			title: 'Abrir',
+			filters: [{ name: 'Survey', extensions: ['srv'] }],
+		});
+
+		if (result.canceled) {
+			return result;
+		}
+
+		const filePath = result.data[0];
+
+		// Fecha o arquivo atual
+		result = await srvService.closeWorkbook();
+
+		if (result.error) {
+			Toast({ message: `Não foi possível fechar o arquivo temp.xls(x)<br>${result.error}` }).show();
+			return;
+		}
+
+		await Neutralino.window.minimize();
+
+		// Abre o arquivo
+		result = await srvService.openSrv(filePath);
+
+		await Neutralino.window.unminimize();
+
+		if (result.error) {
+			Toast({ message: `Falha ao abrir o arquivo.<br>${result.error}` }).show();
+			return;
+		}
+
+		appData.srvConfig = result.data;
+		appData.state.opened = true;
+		appData.state.saved = true;
+		neutralinoService.setWindowTitle(true);
+		start();
+	} finally {
+		appData.state.opening = false;
 	}
-
-	let result = await neutralinoService.showFileDialog({
-		target: 'open',
-		title: 'Abrir',
-		filters: [{ name: 'Survey', extensions: ['srv'] }],
-	});
-
-	if (result.canceled) {
-		return result;
-	}
-
-	const filePath = result.data[0];
-
-	// Fecha o arquivo atual
-	result = await srvService.closeWorkbook();
-
-	if (result.error) {
-		Toast({ message: `Não foi possível fechar o arquivo temp.xls(x)<br>${result.error}` }).show();
-		return;
-	}
-
-	await Neutralino.window.minimize();
-
-	// Abre o arquivo
-	result = await srvService.openFile(filePath);
-
-	await Neutralino.window.unminimize();
-
-	if (result.error) {
-		Toast({ message: `Falha ao abrir o arquivo.<br>${result.error}` }).show();
-		return;
-	}
-
-	appData.srvConfig = result.data;
-	appData.state.opened = true;
-	appData.state.saved = true;
-	start();
 }
 
-async function saveFile(confirm = false) {
+async function saveFile(confirm = false) { <<<< salvar novo .srv
 	// Retorna true | false | 'error' | 'canceled'
 
 	const srvFileName = appData.srvFileName;
@@ -170,21 +205,27 @@ async function saveFile(confirm = false) {
 				content: `Deseja salvar as alterações em ${srvFileName}?`,
 				hideOut: false,
 				buttons: [
-					{ name: 'Savar', primary: true, onClick: async modal => {
-						modal.hide();
+					{
+						name: 'Savar', primary: true, onClick: async modal => {
+							modal.hide();
 
-						const result = await save();
+							const result = await save();
 
-						resolve(result);
-					}},
-					{ name: 'Não salvar', onClick: modal => {
-						modal.hide();
-						resolve(false);
-					}},
-					{ name: 'Cancelar', onClick: modal => {
-						modal.hide();
-						resolve('canceled');
-					}},
+							resolve(result);
+						}
+					},
+					{
+						name: 'Não salvar', onClick: modal => {
+							modal.hide();
+							resolve(false);
+						}
+					},
+					{
+						name: 'Cancelar', onClick: modal => {
+							modal.hide();
+							resolve('canceled');
+						}
+					},
 				],
 			}).show();
 		});
@@ -193,19 +234,19 @@ async function saveFile(confirm = false) {
 	}
 
 	async function save() {
-		let result = await srvService.saveFile(appData.srvConfig);
+		let result = await srvService.saveSrv(appData.srvConfig);
 
 		if (result.error) {
 			Modal({
 				title: 'Survey',
-				content: `Falha ao salvar ${srvFileName}<br>${result.error}`,
+				content: `Falha ao salvar ${srvFileName}<br>${result.error.replaceAll('\n', '<br>')}`,
 				buttons: [{ name: 'OK', onClick: modal => modal.hide() }],
 			}).show();
 
 			return 'error';
 		}
 
-		proxy.appData.state.saved = true;
+		neutralinoService.setWindowTitle(true);
 
 		return true;
 	}
@@ -218,7 +259,7 @@ function showFileInfo() {
 		width: 360,
 		hideOut: true,
 		buttons: [
-			{ name: 'OK', primary: true, onClick: () => modal.hide()},
+			{ name: 'OK', primary: true, onClick: () => modal.hide() },
 		],
 	});
 
@@ -228,7 +269,11 @@ function showFileInfo() {
 async function observeSheets() {
 	// Observa as planilhas no arquivo do Excel.
 
-	return;
+	if (
+		appData.state.creating ||
+		appData.state.opening ||
+		!appData.state.opened
+	) return;
 
 	await utils.pause(1000);
 
@@ -246,27 +291,24 @@ async function observeSheets() {
 			//observeSheets()
 		}
 
-		return
+		//console.log(result);
 
 		// Arquivo temp.xls(x) fechado pelo usuário
-		if (appData.state.opened && !result.data) {
+		if (!result.data) {
 			Modal({
 				title: 'Survey',
 				content: 'Mantenha o arquivo temp.xls(x) aberto enquanto executa o aplicativo.',
 				hideOut: false,
 				buttons: [
-					{ name: 'OK', onClick: async modal => {
-						modal.hide();
+					{ name: 'OK', onClick: modal => modal.hide() },
+				],
+				onHide: async modal => {
+					// Abre o arquivo novamente
+					await neutralinoService.openFile({ filePath: `${constants.temp_folder_path}/${appData.excelFileName}` });
 
-						// Abre o arquivo novamente
-						// await shared.actions.openFile({
-						// 	filePath: constants.TEMP_FOLDER_PATH + '/' + _globalProxy.appData.tempFileName,
-						// });
-
-						await utils.pause(5000);
-						observeSheets();
-					}},
-				]
+					await utils.pause(5000);
+					observeSheets();
+				}
 			}).show();
 
 			return;

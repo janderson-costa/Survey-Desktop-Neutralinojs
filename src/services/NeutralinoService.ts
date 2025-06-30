@@ -13,9 +13,13 @@ function NeutralinoService() {
 		setOnWindowClose,
 		setMenubar,
 		showFileDialog,
+		createDirectory,
+		readDirectory,
 		readFile,
 		writeFile,
 		renameFile,
+		remove,
+		copyFolder,
 		copyFile,
 		openFile,
 		clearFolder,
@@ -28,11 +32,16 @@ function NeutralinoService() {
 
 // Janela
 
-async function setWindowTitle(options = { saved: null }) {
+async function setWindowTitle(saved?: any) {
 	const config = await Neutralino.app.getConfig();
 	const name = config.name;
 	const version = config.version;
-	const saved = options.saved == true || appData.state.saved;
+
+	if (typeof saved == 'boolean') {
+		appData.state.saved = saved;
+	} else {
+		saved = appData.state.saved;
+	}
 
 	return Neutralino.window.setTitle(`${name} - ${version} ${saved ? '' : '*'}`);
 }
@@ -152,6 +161,24 @@ async function showFileDialog(options = { title: '', target: '', filters: [] }) 
 
 // Sistema de arquivos
 
+async function createDirectory(options = { path: '' }) {
+	const result = createResult();
+
+	return Neutralino.filesystem.createDirectory(options.path)
+		.then(data => result.data = data)
+		.catch(error => result.error = error.message)
+		.then(() => result);
+}
+
+async function readDirectory(options = { path: '' }) {
+	const result = createResult();
+
+	return Neutralino.filesystem.readDirectory(options.path)
+		.then(data => result.data = data)
+		.catch(error => result.error = error.message)
+		.then(() => result);
+}
+
 async function readFile(options = { filePath: '' }) {
 	// Lê o conteúdo do arquivo e retorna como string.
 
@@ -198,10 +225,35 @@ async function renameFile(options = { filePath: '', name: '' }) {
 		});
 }
 
+async function remove(options = { path: '' }) {
+	const result = createResult();
+
+	return Neutralino.filesystem.remove(options.path)
+		.then(data => result.data = data)
+		.catch(error => result.error = error.message)
+		.then(() => result);
+}
+
 async function copyFile(options = { fromFilePath: '', toFilePath: '' }) {
 	const result = createResult();
 
 	return Neutralino.filesystem.copy(options.fromFilePath, options.toFilePath)
+		.then((data: any) => {
+			if (!data.success)
+				result.error = data.message;
+		})
+		.catch(error => {
+			result.error = error.message;
+		})
+		.then(() => {
+			return result;
+		});
+}
+
+async function copyFolder(options = { fromFolderPath: '', toFolderPath: '' }) {
+	const result = createResult();
+
+	return Neutralino.filesystem.copy(options.fromFolderPath, options.toFolderPath)
 		.then((data: any) => {
 			if (!data.success)
 				result.error = data.message;
@@ -274,6 +326,20 @@ async function zipFile(options = { fromFolderPath: '', toFilePath: '' }) {
 	.then(() => {
 		return result;
 	});
+
+	// return Neutralino.os.execCommand(
+	// 	`.\\dist\\tools\\7zip\\7za.exe a -tzip -sccUTF-8 "${options.toFilePath}" "${options.fromFolderPath}/*" -y`,
+	// 	{ background: false }
+	// ).then(out => {
+	// 	if (out.stdErr)
+	// 		result.error = out.stdErr;
+	// })
+	// .catch(error => {
+	// 	result.error = error.message;
+	// })
+	// .then(() => {
+	// 	return result;
+	// });
 }
 
 async function unzipFile(options = { fromFilePath: '', toFolderPath: '' }) {
