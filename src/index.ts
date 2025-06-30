@@ -2,6 +2,7 @@ Neutralino.init();
 
 import actions from './shared/actions';
 import ui from './shared/ui';
+import proxy from './shared/proxy';
 import utils from './lib/Utils/Utils.js';
 import { appData, setAppData } from './shared/appData';
 import { createSrvConfig } from './models/SrvConfig';
@@ -30,16 +31,16 @@ async function start() {
 	const appDataStored = await neutralinoService.storage('appData');
 
 	// Atualiza appData
-	if (appDataStored && !appData.proxy)
+	if (appDataStored && !proxy.appData)
 		setAppData(appDataStored);
 
 	appData.srvConfig = appData.srvConfig || createSrvConfig();
-	appData.dataTables = [];
+	ui.dataTables = [];
 
 	// Observa alterações em appData
 	_observeDataChanges = false;
 
-	appData.proxy = utils.observe(appData, {
+	proxy.appData = utils.observe(appData, {
 		onChange: async () => {
 			if (!_observeDataChanges) return;
 
@@ -56,8 +57,6 @@ async function start() {
 		appData.sheets = result.data;
 
 	ui.create();
-
-	// Carrega a página
 	document.body.innerHTML = '';
 	document.body.appendChild(ui.layout);
 	ui.loadTables();
@@ -206,7 +205,7 @@ async function saveFile(confirm = false) {
 			return 'error';
 		}
 
-		appData.proxy.state.saved = true;
+		proxy.appData.state.saved = true;
 
 		return true;
 	}

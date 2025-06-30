@@ -1,4 +1,5 @@
 import ui from '../shared/ui';
+import proxy from '../shared/proxy';
 import actions from '../shared/actions';
 import { appData } from '../shared/appData';
 import { SrvTable } from '../models/SrvConfig';
@@ -8,8 +9,21 @@ import Buttons from '../components/Buttons';
 import { createDataTable } from '../components/DataTable';
 import { Icon, renderIcons } from '../components/Icon';
 
-export function create() {
-	const srvConfig = appData.proxy.srvConfig;
+const uiService = UIService();
+
+export { uiService };
+
+function UIService() {
+	return {
+		create,
+		loadTables,
+		addTable,
+		selectTable,
+	};
+}
+
+function create() {
+	const srvConfig = proxy.appData.srvConfig;
 	const menu = Menu({ items: [] });
 	const toolbar_actions_left_buttons = [
 		{ title: 'Novo', icon: Icon('new'), onClick: () => actions.newFile() },
@@ -38,7 +52,7 @@ export function create() {
 
 	const $toolbar_actions_left_buttons = html`<div>${() => {
 		toolbar_actions_left_buttons.forEach((control, index) => {
-			if (!appData.proxy.state.opened && index > 1)
+			if (!proxy.appData.state.opened && index > 1)
 				control.hidden = true;
 		});
 
@@ -111,7 +125,7 @@ export function create() {
 	const $tables = srvConfig.data.tables.map(srvTable => {
 		const dt = createDataTable({ srvTable });
 
-		appData.dataTables.push(dt);
+		ui.dataTables.push(dt);
 
 		return dt.element;
 	});
@@ -121,7 +135,7 @@ export function create() {
 
 		$toolbar_table_tabs.querySelectorAll('.tab').forEach(($tab, index) => {
 			if ($tab.classList.contains('active')) {
-				const dt = appData.dataTables[index];
+				const dt = ui.dataTables[index];
 
 				total = dt.rows.length;
 			}
@@ -137,11 +151,11 @@ export function create() {
 					<!-- toolbar-actions -->
 					<div class="toolbar-actions flex justify-between gap-4 px-4 py-4">
 						<div class="left">${$toolbar_actions_left_buttons}</div>
-						<div class="right" @show="${appData.proxy.state.opened}">${$toolbar_actions_right_buttons}</div>
+						<div class="right" @show="${proxy.appData.state.opened}">${$toolbar_actions_right_buttons}</div>
 					</div>
 
 					<!-- toolbar-table -->
-					<div class="toolbar-table flex gap-2 px-4 pb-4" @show="${appData.proxy.state.opened}">
+					<div class="toolbar-table flex gap-2 px-4 pb-4" @show="${proxy.appData.state.opened}">
 						<div class="flex gap-2 w-max-[600px] overflow-x-auto">${$toolbar_table_tabs}</div>
 						${$button_add_table}
 						${$toolbar_table_buttons}
@@ -166,18 +180,19 @@ export function create() {
 	ui.tables_buttons = $toolbar_table_buttons;
 	ui.tables_tabs = $toolbar_table_tabs;
 	ui.tables = $layout.querySelector('.tables');
+	ui.footer_total = $footer_total;
 }
 
-export function loadTables() {
-	const srvConfig = appData.proxy.srvConfig;
+function loadTables() {
+	const srvConfig = proxy.appData.srvConfig;
 
 	srvConfig.data.tables.forEach((srvTable, index) => {
-		appData.dataTables[index].load(srvTable.rows);
+		ui.dataTables[index].load(srvTable.rows);
 	});
 }
 
-export function addTable(srvTable: SrvTable, index: number) {
-	const srvConfig = appData.proxy.srvConfig;
+function addTable(srvTable: SrvTable, index: number) {
+	const srvConfig = proxy.appData.srvConfig;
 	const tablesCount = srvConfig.data.tables.filter(x => x.enabled).length;
 
 	// Garante que pelo menos uma tabela esteja habilitada
@@ -187,7 +202,7 @@ export function addTable(srvTable: SrvTable, index: number) {
 	srvTable.enabled = !srvTable.enabled;
 
 	if (srvTable.enabled) {
-		ui.activeDataTable = appData.dataTables[index];
+		ui.activeDataTable = ui.dataTables[index];
 	} else {
 		// Índice do próximo selecionado que está habilitado
 		const tables = srvConfig.data.tables;
@@ -205,22 +220,25 @@ export function addTable(srvTable: SrvTable, index: number) {
 		}
 
 		srvTable = tables[_index];
-		ui.activeDataTable = appData.dataTables[_index];
+		ui.activeDataTable = ui.dataTables[_index];
 	}
 
 	ui.tables_tabs = ui.tables_tabs.reload();
 	ui.selectTable(srvTable);
 }
 
-export function selectTable(srvTable?: SrvTable) {
+function selectTable(srvTable?: SrvTable) {
 	srvTable = srvTable || appData.srvConfig.data.tables[0];
-	ui.activeDataTable = appData.dataTables.find(dt => dt.id == srvTable.id);
+
+	if (!srvTable) return;
+
+	ui.activeDataTable = ui.dataTables.find(dt => dt.id == srvTable.id);
 
 	// Tab ativa
 	ui.tables_tabs = ui.tables_tabs.reload();
 
 	// Exibe a tabela especificada
-	appData.dataTables.forEach((dt, _index)=> {
+	ui.dataTables.forEach((dt, _index)=> {
 		dt.element.classList.add('!hidden');
 
 		if (dt.id == srvTable.id)
@@ -232,5 +250,5 @@ export function selectTable(srvTable?: SrvTable) {
 	renderIcons();
 
 	// Total
-	ui.footerTotal = ui.footerTotal.reload();
+	ui.footer_total = ui.footer_total.reload();
 }

@@ -1,4 +1,4 @@
-import { create, loadTables, addTable, selectTable } from '../services/UIService.js';
+import { uiService } from '../services/UIService.js';
 
 const ui = {
 	layout: null,
@@ -7,12 +7,13 @@ const ui = {
 	tables_buttons: null,
 	tables_tabs: null,
 	tables: null,
-	footerTotal: null,
+	footer_total: null,
+	dataTables: [],
 	activeDataTable: null,
-	create,
-	loadTables,
-	addTable,
-	selectTable,
+	create: uiService.create,
+	loadTables: uiService.loadTables,
+	addTable: uiService.addTable,
+	selectTable: uiService.selectTable,
 };
 
 export default ui;
