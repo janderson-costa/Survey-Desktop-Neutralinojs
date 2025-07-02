@@ -65,8 +65,8 @@ async function newSrv(filePath: string) {
 				sheets.forEach((sheet, index) => {
 					const srvTable = createSrvTable();
 
-					srvTable.id = sheet.Id; // ! Obs.: Id válido somente enquanto o arquivo do Excel estiver aberto
-					srvTable.name = sheet.Name;
+					srvTable.id = sheet.id; // ! Obs.: Id válido somente enquanto o arquivo do Excel estiver aberto
+					srvTable.name = sheet.name;
 					srvTable.enabled = index == 0; // Habilita a primeira
 
 					srvConfig.data.tables.push(srvTable);
@@ -74,7 +74,7 @@ async function newSrv(filePath: string) {
 
 				// Escreve o arquivo config.json
 				result = await neutralinoService.writeFile({
-					filePath: './dist/temp/config.json',
+					filePath: constants.temp_folder_path + '/config.json',
 					data: JSON.stringify(srvConfig),
 				});
 
@@ -96,7 +96,7 @@ async function openSrv(filePath: string) {
 	appData.srvFileName = fileName;
 
 	// Limpa a pasta temp
-	let result = await neutralinoService.clearFolder({ folderPath: './dist/temp' });
+	let result = await neutralinoService.clearFolder({ folderPath: constants.temp_folder_path });
 
 	if (result.error) {
 		return result;
@@ -105,7 +105,7 @@ async function openSrv(filePath: string) {
 	// Extrai o conteúdo na pasta temp
 	result = await neutralinoService.unzipFile({
 		fromFilePath: filePath,
-		toFolderPath: './dist/temp',
+		toFolderPath: constants.temp_folder_path,
 	});
 
 	if (result.error) {
@@ -122,8 +122,8 @@ async function openSrv(filePath: string) {
 		tempFileName = 'temp' + ext;
 
 		result = await neutralinoService.copyFile({
-			fromFilePath: './dist/temp/' + oldTempFileName,
-			toFilePath: './dist/temp/' + tempFileName,
+			fromFilePath: `${constants.temp_folder_path}/${oldTempFileName}`,
+			toFilePath: `${constants.temp_folder_path}/${tempFileName}`,
 		});
 
 		if (result.error) {
@@ -134,13 +134,13 @@ async function openSrv(filePath: string) {
 	appData.excelFileName = tempFileName;
 
 	// Lê o arquivo config.json ou antigos: formdata.json, report.json e options.json
-	const config = await neutralinoService.readFile({ filePath: './dist/temp/config.json' });
+	const config = await neutralinoService.readFile({ filePath: `${constants.temp_folder_path}/config.json` });
 
 	if (config.data) {
 		srvConfig = JSON.parse(config.data);
 	} else {
-		const formdata = await neutralinoService.readFile({ filePath: './dist/temp/formdata.json' });
-		const report = await neutralinoService.readFile({ filePath: './dist/temp/report.json' });
+		const formdata = await neutralinoService.readFile({ filePath: `${constants.temp_folder_path}/formdata.json` });
+		const report = await neutralinoService.readFile({ filePath: `${constants.temp_folder_path}/report.json` });
 
 		if (formdata.data) {
 			const data = JSON.parse(formdata.data);
@@ -155,7 +155,7 @@ async function openSrv(filePath: string) {
 		}
 
 		result = await neutralinoService.writeFile({
-			filePath: './dist/temp/config.json',
+			filePath: `${constants.temp_folder_path}/config.json`,
 			data: JSON.stringify(srvConfig),
 		});
 
@@ -163,6 +163,11 @@ async function openSrv(filePath: string) {
 			return result;
 		}
 	}
+
+	appData.sheets = srvConfig.data.tables.map(srvTable => ({
+		id: srvTable.id,
+		name: srvTable.name,
+	}));
 
 	// Abre spreadsheet.xls(x) no Excel
 	neutralinoService.openFile({ filePath: `${constants.temp_folder_path}/${tempFileName}` });
@@ -181,9 +186,9 @@ async function openSrv(filePath: string) {
 					let isNewTable = true;
 
 					// Atualizar o id da tabela
-					srvConfig.data.tables.forEach(table => {
-						if (sheet.Name == table.name) {
-							table.id = sheet.Id; // ! Obs.: Id válido somente enquanto o arquivo do Excel estiver aberto
+					srvConfig.data.tables.forEach(srvTable => {
+						if (sheet.name == srvTable.name) {
+							srvTable.id = sheet.id; // ! Obs.: Id válido somente enquanto o arquivo do Excel estiver aberto
 							isNewTable = false;
 						}
 					});
@@ -192,8 +197,8 @@ async function openSrv(filePath: string) {
 					if (isNewTable) {
 						const srvTable = createSrvTable();
 
-						srvTable.id = sheet.Id;
-						srvTable.name = sheet.Name;
+						srvTable.id = sheet.id;
+						srvTable.name = sheet.name;
 						srvTable.enabled = false;
 
 						srvConfig.data.tables.push(srvTable);
@@ -216,6 +221,7 @@ async function saveSrv(srvConfig: SrvConfig) {
 	});
 
 	if (result.error) {
+		console.log(result.error);
 		return result;
 	}
 
@@ -226,6 +232,8 @@ async function saveSrv(srvConfig: SrvConfig) {
 
 	if (!success) {
 		result.error = 'Não foi possível salvar a planilha temp.xls(x).<br><br>Verifique se: <br> - O arquivo está aberto no  Excel.<br> - Não há subjanelas abertas dentro do Excel.<br> - Células em modo de edição.<br> - Outro fator que esteja impedindo o salvamento<br><br>Tente salvar novamente.';
+
+		console.log(result.error);
 		return result;
 	}
 
@@ -242,6 +250,7 @@ async function saveSrv(srvConfig: SrvConfig) {
 	result = await neutralinoService.createDirectory({ path: savedFolderPath });
 
 	if (result.error) {
+		console.log(result.error);
 		return result;
 	}
 
@@ -249,6 +258,7 @@ async function saveSrv(srvConfig: SrvConfig) {
 	result = await neutralinoService.readDirectory({ path: constants.temp_folder_path });
 
 	if (result.error) {
+		console.log(result.error);
 		return result;
 	}
 
@@ -271,16 +281,20 @@ async function saveSrv(srvConfig: SrvConfig) {
 	});
 
 	if (!result.error) {
-		// Remove o arquivo .srv original
-		result = await neutralinoService.remove({ path: appData.srvFilePath });
+		// Remove o arquivo .srv original (se existir)
+		try {
+			await neutralinoService.remove({ path: appData.srvFilePath });
+		} catch (error) {}
 
-		if (!result.error) {
-			// Copia o arquivo .srv atualizado para a pasta de origem
-			result = await neutralinoService.copyFile({
-				fromFilePath: `${savedFolderPath}/${appData.srvFileName}`,
-				toFilePath: appData.srvFilePath,
-			});
-		}
+		// Copia o arquivo .srv para a pasta de origem
+		result = await neutralinoService.copyFile({
+			fromFilePath: `${savedFolderPath}/${appData.srvFileName}`,
+			toFilePath: appData.srvFilePath,
+		});
+	}
+
+	if (result.error) {
+		console.log(result.error);
 	}
 
 	return result;
@@ -303,7 +317,7 @@ async function saveWorkbook() {
 		if (out.stdErr) {
 			result.error = out.stdErr;
 		} else if (out.stdOut) {
-			result.data = JSON.parse(out.stdOut).Data;
+			result.data = JSON.parse(out.stdOut).data;
 		}
 	})
 	.catch(error => {
@@ -329,7 +343,7 @@ async function getSheets() {
 		if (out.stdErr) {
 			result.error = out.stdErr;
 		} else if (out.stdOut) {
-			result.data = JSON.parse(out.stdOut).Data;
+			result.data = JSON.parse(out.stdOut).data;
 		}
 	})
 	.catch(error => {
@@ -355,7 +369,7 @@ async function closeWorkbook() {
 		if (out.stdErr) {
 			result.error = out.stdErr;
 		} else if (out.stdOut) {
-			result.data = JSON.parse(out.stdOut).Data;
+			result.data = JSON.parse(out.stdOut).data;
 		}
 	})
 	.catch(error => {
@@ -367,7 +381,7 @@ async function closeWorkbook() {
 function parseFormdata(data: any[]) {
 	// Converte os dados de versão antiga para o novo modelo.
 
-	const planilhas = [...new Set(data.map(data => data.Planilha))]; // Somente os nomes das planilhas únicos
+	const planilhas = [...new Set(data.map(data => data.planilha))]; // Somente os nomes das planilhas únicos
 	const _data = {
 		tables: [],
 	};
@@ -379,30 +393,30 @@ function parseFormdata(data: any[]) {
 		srvTable.name = planilha;
 		srvTable.rows = [];
 
-		data.filter(data => data.Planilha == planilha).forEach(item => {
+		data.filter(data => data.planilha == planilha).forEach(item => {
 			// Grupo
-			if (item.Grupo && item.Grupo != lastGroup) {
-				lastGroup = item.Grupo;
+			if (item.grupo && item.grupo != lastGroup) {
+				lastGroup = item.grupo;
 
 				const srvRow = createSrvTableRow();
 
 				srvRow.isGroup = true;
-				srvRow.name = item.Grupo;
+				srvRow.name = item.grupo;
 				srvTable.rows.push(srvRow);
 			}
 
 			// Linha
 			const srvRow = createSrvTableRow();
 
-			srvRow.id = item.Id;
-			srvRow.objects = JSON.parse(item.Objetos || '[]');
-			srvRow.name = item.Nome;
-			srvRow.description = item.Descricao;
-			srvRow.type = item.Tipo;
-			srvRow.subtype = item.SubTipo;
-			srvRow.value = item.Valor;
-			srvRow.required = item.Obrigatorio == '1';
-			srvRow.readonly = item.Editavel != '1';
+			srvRow.id = item.id;
+			srvRow.objects = JSON.parse(item.objetos || '[]');
+			srvRow.name = item.nome;
+			srvRow.description = item.descricao;
+			srvRow.type = item.tipo;
+			srvRow.subtype = item.subTipo;
+			srvRow.value = item.valor;
+			srvRow.required = item.obrigatorio == '1';
+			srvRow.readonly = item.editavel != '1';
 
 			srvTable.rows.push(srvRow);
 		});

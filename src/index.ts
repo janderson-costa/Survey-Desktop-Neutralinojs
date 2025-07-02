@@ -5,12 +5,13 @@ import ui from './shared/ui';
 import proxy from './shared/proxy';
 import utils from './lib/Utils/Utils.js';
 import { appData, setAppData } from './shared/appData';
-import { createSrvConfig } from './models/SrvConfig';
+import { createSrvConfig, createSrvTable, SrvTable } from './models/SrvConfig';
 import { neutralinoService } from './services/NeutralinoService';
 import { srvService } from './services/SrvService';
 import Modal from './lib/Modal/Modal.js';
 import Toast from './lib/Toast/Toast.js';
 import { renderIcons } from './components/Icon';
+import { dataTableService } from './services/DataTableService';
 import constants from './shared/constants';
 
 let _observeDataChanges: boolean;
@@ -22,13 +23,14 @@ actions.closeWorkbook = srvService.closeWorkbook;
 actions.showFileInfo = showFileInfo;
 
 neutralinoService.setWindowTitle();
-neutralinoService.setMenubar();
 neutralinoService.setOnWindowClose();
+//neutralinoService.storage('appData', null); // ! *** Habilitar para produção ***
 
 start();
 observeSheets();
 
 async function start() {
+	constants.root_path = await Neutralino.filesystem.getAbsolutePath(NL_PATH);
 	const appDataStored = await neutralinoService.storage('appData');
 
 	// Atualiza appData
@@ -53,18 +55,13 @@ async function start() {
 		},
 	});
 
-	// Cria a interface do usuário
-	const result = await srvService.getSheets();
-
-	if (result.data)
-		appData.sheets = result.data;
-
+	// Renderiza a interface
 	ui.create();
 	document.body.innerHTML = '';
 	document.body.appendChild(ui.layout);
-	ui.loadTables();
-	ui.selectTable();
+	ui.selectTableTab();
 	renderIcons();
+	neutralinoService.storage('appData', appData);
 	_observeDataChanges = true;
 }
 
@@ -192,17 +189,15 @@ async function openFile(confirmSave = true) {
 	}
 }
 
-async function saveFile(confirm = false) { <<<< salvar novo .srv
+async function saveFile(confirm = false) {
 	// Retorna true | false | 'error' | 'canceled'
-
-	const srvFileName = appData.srvFileName;
 
 	// Confirmar se deseja salvar as alterações
 	if (confirm) {
 		return new Promise(async resolve => {
 			Modal({
 				title: 'Survey',
-				content: `Deseja salvar as alterações em ${srvFileName}?`,
+				content: `Deseja salvar as alterações em ${appData.srvFileName}?`,
 				hideOut: false,
 				buttons: [
 					{
@@ -234,12 +229,33 @@ async function saveFile(confirm = false) { <<<< salvar novo .srv
 	}
 
 	async function save() {
+		console.log(appData.srvFilePath);
+		// Novo arquivo
+		if (!appData.srvFilePath) {
+			let result = await neutralinoService.showFileDialog({
+				target: 'save',
+				title: 'Novo',
+				filters: [{ name: 'Survey', extensions: ['srv'] }],
+			});
+
+			if (result.canceled) {
+				return 'canceled';
+			}
+
+			appData.srvFilePath = result.data;
+
+			if (!appData.srvFilePath.toLowerCase().endsWith('.srv'))
+				appData.srvFilePath += '.srv';
+
+			appData.srvFileName = appData.srvFilePath.substring(appData.srvFilePath.lastIndexOf('/') + 1);
+		}
+
 		let result = await srvService.saveSrv(appData.srvConfig);
 
 		if (result.error) {
 			Modal({
 				title: 'Survey',
-				content: `Falha ao salvar ${srvFileName}<br>${result.error.replaceAll('\n', '<br>')}`,
+				content: `Falha ao salvar ${appData.srvFileName}<br>${result.error.replaceAll('\n', '<br>')}`,
 				buttons: [{ name: 'OK', onClick: modal => modal.hide() }],
 			}).show();
 
@@ -267,53 +283,97 @@ function showFileInfo() {
 }
 
 async function observeSheets() {
-	// Observa as planilhas no arquivo do Excel.
+	// Observa as planilhas no arquivo do Excel e atualiza as tabelas.
+
+	await utils.pause(1000);
 
 	if (
 		appData.state.creating ||
 		appData.state.opening ||
 		!appData.state.opened
-	) return;
+	) {
+		observeSheets();
+		return;
+	};
 
-	await utils.pause(1000);
+	const result = await srvService.getSheets();
 
-	srvService.getSheets().then(async result => {
-		if (result.data) {
-			//appData.sheets = result.data;
-			// result.data.find(sheet => {
-			// 	if (!appData.sheets.find(x => x.Id == sheet.Id)) {
-			// 		appData.sheets.push(sheet);
-			// 		_globalProxy.appData.srvConfig.data.
-			// 	}
-			// });
-
-			console.log(result.data);
-			//observeSheets()
-		}
-
-		//console.log(result);
-
-		// Arquivo temp.xls(x) fechado pelo usuário
-		if (!result.data) {
-			Modal({
-				title: 'Survey',
-				content: 'Mantenha o arquivo temp.xls(x) aberto enquanto executa o aplicativo.',
-				hideOut: false,
-				buttons: [
-					{ name: 'OK', onClick: modal => modal.hide() },
-				],
-				onHide: async modal => {
-					// Abre o arquivo novamente
-					await neutralinoService.openFile({ filePath: `${constants.temp_folder_path}/${appData.excelFileName}` });
-
-					await utils.pause(5000);
-					observeSheets();
-				}
-			}).show();
-
+	if (result.data) {
+		if (
+			JSON.stringify(appData.sheets.map(x => x.name)) ==
+			JSON.stringify(result.data.map(x => x.name))
+		) {
+			observeSheets();
 			return;
 		}
 
-		observeSheets();
-	});
+		appData.sheets = result.data;
+
+		const currentSrvTables: SrvTable[] = [];
+
+		appData.sheets.forEach(sheet => {
+			const srvTable = createSrvTable();
+
+			srvTable.id = sheet.id;
+			srvTable.name = sheet.name;
+			srvTable.enabled = false;
+
+			currentSrvTables.push(srvTable);
+		});
+
+		currentSrvTables.forEach((currentSrvTable, index) => {
+			const srvTable = appData.srvConfig.data.tables.find(x => x.id == currentSrvTable.id);
+			let add = true;
+
+			if (srvTable) {
+				// Tabela existente
+				currentSrvTables[index] = srvTable;
+				add = false;
+			}
+
+			if (add) {
+				// Nova tabela
+				const dt = dataTableService.createDataTable(currentSrvTable.id);
+
+				dt.load(currentSrvTable.rows);
+				ui.tables.appendChild(dt.element);
+			}
+		});
+
+		// Remove tabelas que não existem mais
+		appData.srvConfig.data.tables.forEach(srvTable => {
+			if (!currentSrvTables.some(currentSrvTable => currentSrvTable.id == srvTable.id)) {
+				dataTableService.removeDataTable(srvTable.id);
+
+				if (ui.activeDataTable.id == srvTable.id) {
+					ui.activeDataTable = null;
+					ui.tables_buttons = ui.tables_buttons['reload']();
+				}
+			}
+		});
+
+		proxy.appData.srvConfig.data.tables = currentSrvTables;
+		ui.tables_tabs = ui.tables_tabs['reload']();
+	} else {
+		// Arquivo temp.xls(x) fechado pelo usuário
+		Modal({
+			title: 'Survey',
+			content: 'Mantenha o arquivo temp.xls(x) aberto enquanto executa o aplicativo.',
+			hideOut: false,
+			buttons: [
+				{ name: 'OK', onClick: modal => modal.hide() },
+			],
+			onHide: async modal => {
+				// Abre o arquivo novamente
+				await neutralinoService.openFile({ filePath: `${constants.temp_folder_path}/${appData.excelFileName}` });
+
+				await utils.pause(5000);
+				observeSheets();
+			}
+		}).show();
+
+		return;
+	}
+
+	observeSheets();
 }

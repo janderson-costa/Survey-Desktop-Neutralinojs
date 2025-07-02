@@ -10,11 +10,13 @@ const __defaultOptions = {
 		id: string, (opcional)
 		name: string,
 		description: string, (opcional)
+		hidden: boolean, (opcional)
 		onClick: function
 	}*/
 	position: 'left', // 'left' | 'right' | 'top left' | 'top right'
 	top: 0, // Ajuste de posição vertical (opcional)
 	left: 0, // Ajuste de posição horizontal (opcional)
+	maxHeight: null, // Altura máxima (px) do menu (opcional)
 	onShow: null,
 	onHide: null,
 };
@@ -40,6 +42,7 @@ export default function Menu(defaultOptions) {
 	const _context = {
 		options: defaultOptions,
 		element: null,
+		item,
 		show,
 		hide,
 	};
@@ -55,7 +58,7 @@ export default function Menu(defaultOptions) {
 				return /*html*/`<div class="ctx-divider"></div>`;
 			} else {
 				return /*html*/`
-					<div class="ctx-item">
+					<div class="ctx-item" name="${item.name}">
 						<div class="ctx-icon"></div>
 						<div class="ctx-text">
 							<div class="ctx-name">${item.name}</div>
@@ -66,13 +69,19 @@ export default function Menu(defaultOptions) {
 			}
 		}).join('')}`;
 
+		if (defaultOptions.maxHeight)
+			$menu.style.maxHeight = defaultOptions.maxHeight + 'px';
+
 		// Itens
 		$menu.querySelectorAll(':scope > div').forEach(($item, index) => {
 			const item = defaultOptions.items[index];
 			const icon = item.icon;
 
-			$item.data = item;
 			item.element = $item;
+			$item.data = item;
+			$item.classList[item.hidden == true ? 'add': 'remove']('hidden');
+
+			if (item.divider) return;
 
 			// Ícone
 			const $icon = $item.querySelector('.ctx-icon');
@@ -87,20 +96,41 @@ export default function Menu(defaultOptions) {
 			}
 
 			// Evento
-			if (item.divider == undefined) {
-				$item.addEventListener('click', event => {
-					hide();
+			$item.addEventListener('click', event => {
+				hide();
 
-					if (item.onClick)
-						item.onClick(event);
-				});
-			}
+				if (item.onClick)
+					item.onClick(event);
+			});
 		});
 
 		_context.element = $menu;
 		document.body.appendChild($menu);
 
 		return $menu;
+	}
+
+	function item(name) {
+		const item = defaultOptions.items.find(item => item.name == name);
+
+		return {
+			item,
+			icon,
+		};
+
+		function icon(stringOrElement) {
+			const $icon = item.element.querySelector('.ctx-icon');
+
+			if (!stringOrElement)
+				return $icon;
+
+			$icon.innerHTML = '';
+
+			if (typeof stringOrElement == 'string')
+				$icon.innerHTML = stringOrElement;
+			else if (stringOrElement instanceof HTMLElement)
+				$icon.appendChild(stringOrElement);
+		}
 	}
 
 	function show(options = {}) {

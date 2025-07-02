@@ -1,6 +1,20 @@
 import { uiService } from '../services/UIService.js';
 
-const ui = {
+interface UI {
+	layout: Element,
+	actions_left_buttons: Element,
+	actions_right_buttons: Element,
+	tables_buttons: Element,
+	tables_tabs: Element,
+	tables: Element,
+	footer_total: Element,
+	dataTables: any[],
+	activeDataTable: any,
+	create: Function,
+	selectTableTab: Function,
+};
+
+const ui: UI = {
 	layout: null,
 	actions_left_buttons: null,
 	actions_right_buttons: null,
@@ -11,9 +25,7 @@ const ui = {
 	dataTables: [],
 	activeDataTable: null,
 	create: uiService.create,
-	loadTables: uiService.loadTables,
-	addTable: uiService.addTable,
-	selectTable: uiService.selectTable,
+	selectTableTab: uiService.selectTableTab,
 };
 
 export default ui;

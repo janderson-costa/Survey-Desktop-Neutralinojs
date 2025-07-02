@@ -2,12 +2,7 @@ import ui from '../shared/ui.js';
 import utils from '../lib/Utils/Utils.js';
 import { html } from '../lib/html/html.js';
 import { DataTable } from '../lib/DataTable/src/index.js';
-import { SrvTable } from '../models/SrvConfig.js';
-import { renderIcons } from './Icon.js';
-
-interface TableProps {
-	srvTable: SrvTable;
-}
+import { renderIcons } from '../components/Icon.js';
 
 const _columns = {
 	//id: { displayName: 'Id', hidden: true },
@@ -32,9 +27,20 @@ const _fieldTypes = [
 	{ name: '', displayName: 'Assinatura' },
 ];
 
-export function createDataTable(props: TableProps) {
-	return DataTable({
-		id: props.srvTable.id,
+const dataTableService = DataTableService();
+
+export { dataTableService };
+
+function DataTableService() {
+	return {
+		createDataTable,
+		removeDataTable,
+	};
+}
+
+function createDataTable(srvTableId: string) {
+	const dt = DataTable({
+		id: srvTableId,
 		data: [],
 		place: null,
 		checkbox: false,
@@ -194,11 +200,11 @@ export function createDataTable(props: TableProps) {
 			},
 		},
 		onSelectRows: ({ rows }) => {
-			ui.tables_buttons = ui.tables_buttons.reload();
+			ui.tables_buttons = ui.tables_buttons['reload']();
 			renderIcons();
 		},
 		onUnselectRows: () => {
-			ui.tables_buttons = ui.tables_buttons.reload();
+			ui.tables_buttons = ui.tables_buttons['reload']();
 			renderIcons();
 		},
 		onClickOut: ({ event }) => {
@@ -206,4 +212,18 @@ export function createDataTable(props: TableProps) {
 			return false;
 		},
 	});
+
+	dt.element.classList.add('!hidden');
+	ui.dataTables.push(dt);
+
+	return dt;
+}
+
+function removeDataTable(srvTableId: string) {
+	let dt = ui.dataTables.find(x => x.id == srvTableId);
+
+	if (dt) {
+		dt.element.remove();
+		dt = null;
+	}
 }

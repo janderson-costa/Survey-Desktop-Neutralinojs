@@ -4,8 +4,8 @@
 		"copy:neutralino": "copy src\\lib\\neutralino\\neutralino.js dist",
 		"copy:index.html": "copy src\\index.html dist",
 		"copy:images": "copy src\\static\\images\\* dist",
-		"dev": "npm run copy:neutralino && npm run copy:index.html && npm run copy:images && sass src/static/styles/index.scss dist/style.css --style=compressed --no-source-map --watch | npx esbuild src/index.ts --bundle --outfile=dist/index.js --platform=browser --watch",
-		"prod": "npm run copy:neutralino && npm run copy:index.html && npm run copy:images && sass src/static/styles/index.scss dist/style.css --style=compressed --no-source-map && npx esbuild src/index.ts --bundle --outfile=dist/index.js --platform=browser --minify",
+		"dev": "npm run copy:neutralino && npm run copy:index.html && npm run copy:images && sass src/static/styles/index.scss dist/style.css --style=compressed --no-source-map --watch | esbuild src/index.ts --bundle --outfile=dist/index.js --platform=browser --watch",
+		"prod": "npm run copy:neutralino && npm run copy:index.html && npm run copy:images && sass src/static/styles/index.scss dist/style.css --style=compressed --no-source-map && esbuild src/index.ts --bundle --outfile=dist/index.js --platform=browser --minify",
 		"start": "neu run",
 		"build": "npm run prod && neu build --release"
 	}

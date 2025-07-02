@@ -11,7 +11,6 @@ function NeutralinoService() {
 	return {
 		setWindowTitle,
 		setOnWindowClose,
-		setMenubar,
 		showFileDialog,
 		createDirectory,
 		readDirectory,
@@ -82,49 +81,6 @@ async function setOnWindowClose() {
 		// Fecha a aplicação
 		await Neutralino.app.exit();
 	}
-}
-
-function setMenubar() {
-	// const menubar = new nw.Menu({ type: 'menubar' });
-	// const arquivo = new nw.Menu();
-
-	// arquivo.append(new nw.MenuItem({ label: 'Novo', click: actions.newFile }));
-	// arquivo.append(new nw.MenuItem({ label: 'Abrir', click: actions.openFile }));
-	// arquivo.append(new nw.MenuItem({ label: 'Salvar', click: actions.saveFile }));
-	// arquivo.append(new nw.MenuItem({ label: 'Salvar Como', click: actions.saveFileAs }));
-	// arquivo.append(new nw.MenuItem({ type: 'separator' }));
-	// arquivo.append(new nw.MenuItem({ label: 'Enviar por E-mail', click: actions.sendByEmail }));
-	// arquivo.append(new nw.MenuItem({ type: 'separator' }));
-	// arquivo.append(new nw.MenuItem({ label: 'Abrir Local do Arquivo', click: actions.openFileLocation }));
-	// arquivo.append(new nw.MenuItem({ type: 'separator' }));
-	// arquivo.append(new nw.MenuItem({ label: 'Sair', click: () => null }));
-
-	// const exibir = new nw.Menu();
-
-	// exibir.append(new nw.MenuItem({ label: 'Informações do Arquivo', click: actions.showFileInfo }));
-	// exibir.append(new nw.MenuItem({ type: 'separator' }));
-	// exibir.append(new nw.MenuItem({ label: 'Atualizar janela', click: nw.Window.get().reloadIgnoringCache }));
-
-	// const ferramentas = new nw.Menu();
-
-	// ferramentas.append(new nw.MenuItem({ label: 'Carregar Dados nas Planilhas' }));
-	// ferramentas.append(new nw.MenuItem({ label: 'Limpar Dados das Planilhas' }));
-	// ferramentas.append(new nw.MenuItem({ type: 'separator' }));
-	// ferramentas.append(new nw.MenuItem({ label: 'Enviar por E-mail' }));
-	// ferramentas.append(new nw.MenuItem({ type: 'separator' }));
-	// ferramentas.append(new nw.MenuItem({ label: 'Visualizar no Dispositivo Móvel' }));
-
-	// const ajuda = new nw.Menu();
-
-	// ajuda.append(new nw.MenuItem({ label: 'Ajuda' }));
-	// ajuda.append(new nw.MenuItem({ label: 'Sobre' }));
-
-	// menubar.append(new nw.MenuItem({ label: 'Arquivo', submenu: arquivo }));
-	// menubar.append(new nw.MenuItem({ label: 'Exibir', submenu: exibir }));
-	// menubar.append(new nw.MenuItem({ label: 'Ferramentas', submenu: ferramentas }));
-	// menubar.append(new nw.MenuItem({ label: 'Ajuda', submenu: ajuda }));
-
-	// nw.Window.get().menu = menubar;
 }
 
 async function showFileDialog(options = { title: '', target: '', filters: [] }) {
