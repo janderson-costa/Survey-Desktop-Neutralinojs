@@ -48,7 +48,7 @@ const menu = Menu({
 		menu.options.items.forEach(item => {
 			const $item: Element = item.element;
 
-			if ($item) {
+			if ($item && !item.divider) {
 				$item.classList.add('!min-h-[2.5rem]');
 
 				if (item.name.startsWith('Informações')) {

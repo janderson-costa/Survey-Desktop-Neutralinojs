@@ -19,8 +19,12 @@ let _observeDataChanges: boolean;
 actions.newFile = newFile;
 actions.openFile = openFile;
 actions.saveFile = saveFile;
-actions.closeWorkbook = srvService.closeWorkbook;
 actions.showFileInfo = showFileInfo;
+actions.closeWorkbook = srvService.closeWorkbook;
+actions.addTableRow = dataTableService.addTableRow;
+actions.addTableRowGroup = dataTableService.addTableRowGroup;
+actions.moveSelectedRows = dataTableService.moveSelectedRows;
+actions.removeSelectedTableRows = dataTableService.removeSelectedTableRows;
 
 neutralinoService.setWindowTitle();
 neutralinoService.setOnWindowClose();
@@ -56,6 +60,7 @@ async function start() {
 	});
 
 	// Renderiza a interface
+	neutralinoService.setWindowTitle();
 	ui.create();
 	document.body.innerHTML = '';
 	document.body.appendChild(ui.layout);
@@ -333,7 +338,7 @@ async function observeSheets() {
 
 			if (add) {
 				// Nova tabela
-				const dt = dataTableService.createDataTable(currentSrvTable.id);
+				const dt = dataTableService.createTable(currentSrvTable.id);
 
 				dt.load(currentSrvTable.rows);
 				ui.tables.appendChild(dt.element);
@@ -343,7 +348,7 @@ async function observeSheets() {
 		// Remove tabelas que não existem mais
 		appData.srvConfig.data.tables.forEach(srvTable => {
 			if (!currentSrvTables.some(currentSrvTable => currentSrvTable.id == srvTable.id)) {
-				dataTableService.removeDataTable(srvTable.id);
+				dataTableService.removeTable(srvTable.id);
 
 				if (ui.activeDataTable.id == srvTable.id) {
 					ui.activeDataTable = null;

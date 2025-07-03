@@ -4,11 +4,16 @@ export default utils;
 
 function Utils() {
 	return {
+		generateUUID,
 		form,
 		pause,
 		observe,
 		css,
 	};
+
+	function generateUUID() {
+		return crypto.randomUUID();
+	}
 
 	function form() {
 		return {

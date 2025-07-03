@@ -40,11 +40,11 @@ function create() {
 	];
 	const toolbar_table_buttons = [
 		{ divider: true, hidden: false },
-		{ title: 'Adicionar grupo', icon: Icon('addGroup'), onClick: () => console.log('onClick') },
-		{ title: 'Adicionar item', icon: Icon('add'), onClick: () => console.log('onClick') },
-		{ title: 'Mover item selecionado para cima', icon: Icon('arrowUp'), onClick: () => console.log('onClick') },
-		{ title: 'Mover item selecionado para baixo', icon: Icon('arrowDown'), onClick: () => console.log('onClick') },
-		{ title: 'Excluir item selecionado', icon: Icon('close'), onClick: () => console.log('onClick') },
+		{ title: 'Adicionar grupo', icon: Icon('addGroup'), onClick: () => actions.addTableRowGroup() },
+		{ title: 'Adicionar item', icon: Icon('add'), onClick: () => actions.addTableRow() },
+		{ title: 'Mover item selecionado para cima', icon: Icon('arrowUp'), onClick: () => actions.moveSelectedRows(false) },
+		{ title: 'Mover item selecionado para baixo', icon: Icon('arrowDown'), onClick: () => actions.moveSelectedRows(true) },
+		{ title: 'Excluir item selecionado', icon: Icon('close'), onClick: () => actions.removeSelectedTableRows() },
 	];
 
 
@@ -125,7 +125,7 @@ function create() {
 	}}</div>`;
 
 	const $tables = srvConfig.data.tables.map(srvTable => {
-		const dt = dataTableService.createDataTable(srvTable.id);
+		const dt = dataTableService.createTable(srvTable.id);
 
 		// Carrega a tabela
 		dt.load(srvTable.rows);

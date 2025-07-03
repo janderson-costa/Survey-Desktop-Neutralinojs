@@ -42,7 +42,9 @@ export function Column(table, options) {
 		} else {
 			$cell.dataset.name = options.name;
 			$cell.insertAdjacentHTML('afterbegin', /*html*/`
-				<label class="name" title="${options.title || ''}">${options.displayName}</label>
+				<label class="name" title="${options.title || ''}">
+					${options.displayName}
+				</label>
 				<span class="controls">
 					<i class="sort asc" title="Sort"></i>
 					<div class="resizer"></div>
@@ -73,8 +75,10 @@ export function Column(table, options) {
 				});
 			}
 
-			if (table.options.resize || options.resize)
-				$cell.classList.add('resizable');
+			if (table.options.resize) {
+				if (options.resize != false)
+					$cell.classList.add('resizable');
+			}
 
 			if (options.style)
 				utils.setElementStyle($cell, options.style);

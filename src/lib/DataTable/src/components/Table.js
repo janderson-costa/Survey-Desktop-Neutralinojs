@@ -434,7 +434,7 @@ export function Table(options) {
 	}
 
 	function _setColumnWidths() {
-		let widths = _storedWidths() || _table._columnWidths;
+		let widths = _table._columnWidths;
 
 		if (!widths) {
 			widths = [];
@@ -548,27 +548,11 @@ export function Table(options) {
 			$header.classList.remove('resizing');
 			document.body.style.cursor = '';
 			document.body.style.userSelect = '';
-			_storedWidths(_table._columnWidths);
 
 			if (diff && options.onResizeColumn) {
 				options.onResizeColumn({ column: currentColumn, widths: _table._columnWidths });
 				diff = 0;
 			}
-		}
-	}
-
-	function _storedWidths(widths) {
-		if (widths) {
-			widths[widths.length - 1] = `minmax(${widths[widths.length - 1]}, 1fr)`; // última coluna com largura máxima
-
-			localStorage.setItem(key_storedWidths, JSON.stringify(widths));
-		} else {
-			widths = localStorage.getItem(key_storedWidths);
-
-			if (widths)
-				_table._columnWidths = JSON.parse(widths);
-
-			return _table._columnWidths;
 		}
 	}
 

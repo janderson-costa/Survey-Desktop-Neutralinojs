@@ -74,7 +74,7 @@ export class ColumnOptions {
 	displayName = null; // string
 	width = null; // number | string
 	minWidth = null; // number | string
-	resize = false; // boolean
+	resize = true; // boolean
 	hidden = false; // boolean
 	disabled = false; // boolean
 	style = null; // object: ex.: { color: red, 'min-width': 150 }

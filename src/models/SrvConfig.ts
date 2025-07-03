@@ -1,3 +1,5 @@
+import utils from "../lib/Utils/Utils";
+
 export interface SrvConfig {
 	versions: {
 		desktop: string | null;
@@ -24,8 +26,9 @@ export interface SrvTableRow {
 	subtype: string;
 	value: string;
 	objects: string;
-	required: boolean;
+	enabled: boolean;
 	readonly: boolean;
+	required: boolean;
 	isGroup: boolean;
 }
 
@@ -48,7 +51,7 @@ export function createSrvConfig(): SrvConfig {
 
 export function createSrvTable(): SrvTable {
 	return {
-		id: '',
+		id: utils.generateUUID(),
 		name: '',
 		enabled: true,
 		rows: [createSrvTableRow()],
@@ -57,15 +60,16 @@ export function createSrvTable(): SrvTable {
 
 export function createSrvTableRow(): SrvTableRow {
 	return {
-		id: '',
+		id: utils.generateUUID(),
 		name: '',
 		description: '',
 		type: '',
 		subtype: '',
 		value: '',
 		objects: '',
-		required: false,
+		enabled: true,
 		readonly: false,
+		required: false,
 		isGroup: false,
 	};
 }

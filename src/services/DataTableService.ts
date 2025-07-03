@@ -3,17 +3,25 @@ import utils from '../lib/Utils/Utils.js';
 import { html } from '../lib/html/html.js';
 import { DataTable } from '../lib/DataTable/src/index.js';
 import { renderIcons } from '../components/Icon.js';
+import { createSrvTableRow } from '../models/SrvConfig.js';
 
 const _columns = {
 	//id: { displayName: 'Id', hidden: true },
-	name: { displayName: 'Nome do campo', minWidth: 150 },
+	enabled: {
+		title: 'Habilitar/Desabilitar no dispositivo móvel',
+		displayName: '<i class="icon" data-lucide="smartphone"></i>',
+		width: 60,
+		style: { paddingLeft: 22 },
+		resize: false,
+	},
+	readonly: { displayName: 'Editável', width: 60, title: 'Editável', },
+	required: { displayName: 'Obrigatório', width: 60, title: 'Obrigatório', },
+	name: { displayName: 'Nome do Campo ou Grupo', minWidth: 150 },
 	description: { displayName: 'Descrição', minWidth: 150 },
-	//subtype: { displayName: 'Subtipo', hidden: true },
 	value: { displayName: 'Valor' },
 	//objects: { displayName: 'Objetos', hidden: true },
-	type: { displayName: 'Tipo', width: 150 },
-	required: { displayName: 'Obrigatório', width: 90 },
-	readonly: { displayName: 'Editável', minWidth: 90 },
+	type: { displayName: 'Tipo' },
+	//subtype: { displayName: 'Subtipo', hidden: true },
 };
 const _fieldTypes = [
 	{ name: '', displayName: 'Texto' },
@@ -33,12 +41,16 @@ export { dataTableService };
 
 function DataTableService() {
 	return {
-		createDataTable,
-		removeDataTable,
+		createTable,
+		removeTable,
+		addTableRow,
+		addTableRowGroup,
+		moveSelectedRows,
+		removeSelectedTableRows,
 	};
 }
 
-function createDataTable(srvTableId: string) {
+function createTable(srvTableId: string) {
 	const dt = DataTable({
 		id: srvTableId,
 		data: [],
@@ -66,6 +78,48 @@ function createDataTable(srvTableId: string) {
 			selectOnClick: true,
 		},
 		cells: {
+			enabled: {
+				display: ({ row, item, value }) => {
+					if (item.isGroup) return '';
+
+					return html`
+						<label class="flex items-center justify-center h-[32px] opacity-90">
+							<input type="checkbox" checked="${() => item.enabled}" @onChange="${e => {
+								item.enabled = e.element.checked;
+
+								// row.cell('required').disable(!item.enabled);
+								// row.cell('readonly').disable(!item.enabled);
+							}}" class="scale-[1.1]"/>
+						</label>
+					`;
+				},
+			},
+			readonly: {
+				display: ({ row, item, value }) => {
+					if (item.isGroup) return '';
+
+					return html`
+						<label class="flex items-center justify-center h-[32px] px-1.5 opacity-90">
+							<input type="checkbox" checked="${() => item.readonly}" @onChange="${e => {
+								item.readonly = e.element.checked;
+							}}" class="scale-[1.1]"/>
+						</label>
+					`;
+				},
+			},
+			required: {
+				display: ({ row, item, value }) => {
+					if (item.isGroup) return '';
+
+					return html`
+						<label class="flex items-center justify-center h-[32px] px-1.5 opacity-90">
+							<input type="checkbox" checked="${() => item.required}" @onChange="${e => {
+								item.required = e.element.checked;
+							}}" class="scale-[1.1]"/>
+						</label>
+					`;
+				},
+			},
 			name: {
 				display: ({ row, item, value }) => {
 					return html`
@@ -77,6 +131,8 @@ function createDataTable(srvTableId: string) {
 			},
 			description: {
 				display: ({ row, item, value }) => {
+					if (item.isGroup) return '';
+
 					const $field = html`
 						<textarea rows="1" @onChange="${e => {
 							item.description = e.element.value.trim();
@@ -90,23 +146,10 @@ function createDataTable(srvTableId: string) {
 					return $field;
 				}
 			},
-			type: {
-				display: ({ row, item, value }) => {
-					const $field = html`
-						<select @onChange="${e => {
-							item.type = e.element.value;
-						}}">${_fieldTypes.map(type => /*html*/`
-							<option value="${type.displayName}">${type.displayName}</option>
-						`)}</select>
-					`;
-
-					$field['value'] = value;
-
-					return $field;
-				},
-			},
 			value: {
 				display: ({ row, item, value }) => {
+					if (item.isGroup) return '';
+
 					if (item.type == 'Texto') {
 						const $field = html`
 							<textarea rows="1" @onChange="${e => {
@@ -176,26 +219,21 @@ function createDataTable(srvTableId: string) {
 					`;
 				},
 			},
-			required: {
+			type: {
 				display: ({ row, item, value }) => {
-					return html`
-						<label class="flex items-center justify-center w-[80px] h-[32px] px-1.5 opacity-90">
-							<input type="checkbox" checked="${() => item.required}" @onChange="${e => {
-								item.required = e.element.checked;
-							}}" class="scale-[1.1]"/>
-						</label>
+					if (item.isGroup) return '';
+
+					const $field = html`
+						<select @onChange="${e => {
+							item.type = e.element.value;
+						}}">${_fieldTypes.map(type => /*html*/`
+							<option value="${type.displayName}">${type.displayName}</option>
+						`)}</select>
 					`;
-				},
-			},
-			readonly: {
-				display: ({ row, item, value }) => {
-					return html`
-						<label class="flex items-center justify-center w-[56px] h-[32px] px-1.5 opacity-90">
-							<input type="checkbox" checked="${() => item.readonly}" @onChange="${e => {
-								item.readonly = e.element.checked;
-							}}" class="scale-[1.1]"/>
-						</label>
-					`;
+
+					$field['value'] = value;
+
+					return $field;
 				},
 			},
 		},
@@ -219,11 +257,35 @@ function createDataTable(srvTableId: string) {
 	return dt;
 }
 
-function removeDataTable(srvTableId: string) {
+function removeTable(srvTableId: string) {
 	let dt = ui.dataTables.find(x => x.id == srvTableId);
 
 	if (dt) {
 		dt.element.remove();
 		dt = null;
 	}
+}
+
+function addTableRow() {
+	const row = createSrvTableRow();
+
+	ui.activeDataTable.addRow(row);
+	ui.footer_total = ui.footer_total['reload']();
+}
+
+function addTableRowGroup() {
+	const row = createSrvTableRow();
+
+	row.isGroup = true;
+	ui.activeDataTable.addRow(row);
+	ui.footer_total = ui.footer_total['reload']();
+}
+
+function moveSelectedRows(down = true) {
+	ui.activeDataTable.moveSelectedRows(down);
+}
+
+function removeSelectedTableRows() {
+	ui.activeDataTable.removeSelectedRows();
+	ui.footer_total = ui.footer_total['reload']();
 }

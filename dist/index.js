@@ -5,7 +5,11 @@
     openFile: null,
     saveFile: null,
     closeWorkbook: null,
-    showFileInfo: null
+    showFileInfo: null,
+    addTableRow: null,
+    addTableRowGroup: null,
+    moveSelectedRows: null,
+    removeSelectedTableRows: null
   };
   var actions_default = actions;
 
@@ -193,18 +197,36 @@
   }
 
   // src/lib/Menu/Menu.js
-  var __defaultOptions = {
+  var __itemDefaultOptions = {
+    icon: null,
+    // HTMLElement (opcional)
+    id: null,
+    // string (opcional)
+    name: null,
+    // string
+    description: null,
+    // string (opcional)
+    hidden: false,
+    // boolean (opcional)
+    onClick: null,
+    // function
+    divider: false,
+    // boolean
+    // Funções geradas do item
+    getIcon: null,
+    // function
+    setIcon: null,
+    // function
+    show: null,
+    // function
+    hide: null
+    // function
+  };
+  var __menuDefaultOptions = {
     trigger: null,
     // HTMLElement - Ex.: button | a | div
     items: [],
-    /* item: {
-    	icon: HTMLElement, (opcional)
-    	id: string, (opcional)
-    	name: string,
-    	description: string, (opcional)
-    	hidden: boolean, (opcional)
-    	onClick: function
-    }*/
+    // __itemDefaultOptions[]
     position: "left",
     // 'left' | 'right' | 'top left' | 'top right'
     top: 0,
@@ -221,28 +243,33 @@
     if (!__menu) return;
     destroy(__menu);
   });
-  function Menu(defaultOptions3) {
-    defaultOptions3 = {
-      ...__defaultOptions,
-      ...defaultOptions3
+  function Menu(menuDefaultOptions) {
+    menuDefaultOptions = {
+      ...__menuDefaultOptions,
+      ...menuDefaultOptions
     };
     let $menu;
     let _classVisible = "";
     let _classInvisible = "";
     const _context = {
-      options: defaultOptions3,
+      options: menuDefaultOptions,
       element: null,
-      item,
       show,
       hide
     };
     return _context;
     function create2() {
+      menuDefaultOptions.items.forEach((item) => {
+        item = {
+          ...__itemDefaultOptions,
+          ...item
+        };
+      });
       const $menu2 = document.createElement("div");
       $menu2.className = "ctx-menu";
       $menu2.innerHTML = /*html*/
-      `${defaultOptions3.items.map((item2) => {
-        if (item2.divider) {
+      `${menuDefaultOptions.items.map((item) => {
+        if (item.divider) {
           return (
             /*html*/
             `<div class="ctx-divider"></div>`
@@ -251,66 +278,60 @@
           return (
             /*html*/
             `
-					<div class="ctx-item" name="${item2.name}">
+					<div class="ctx-item" name="${item.name}">
 						<div class="ctx-icon"></div>
 						<div class="ctx-text">
-							<div class="ctx-name">${item2.name}</div>
-							<div class="ctx-description">${item2.description || ""}</div>
+							<div class="ctx-name">${item.name}</div>
+							<div class="ctx-description">${item.description || ""}</div>
 						</div>
 					</div>
 				`
           );
         }
       }).join("")}`;
-      if (defaultOptions3.maxHeight)
-        $menu2.style.maxHeight = defaultOptions3.maxHeight + "px";
+      if (menuDefaultOptions.maxHeight) {
+        let unit = typeof menuDefaultOptions.maxHeight == "number" ? "px" : "";
+        $menu2.style.maxHeight = menuDefaultOptions.maxHeight + unit;
+      }
       $menu2.querySelectorAll(":scope > div").forEach(($item, index) => {
-        const item2 = defaultOptions3.items[index];
-        const icon = item2.icon;
-        item2.element = $item;
-        $item.data = item2;
-        $item.classList[item2.hidden == true ? "add" : "remove"]("hidden");
-        if (item2.divider) return;
+        const item = menuDefaultOptions.items[index];
         const $icon = $item.querySelector(".ctx-icon");
-        if (icon != void 0 && icon != null) {
-          if (typeof icon == "string")
-            $icon.innerHTML = icon;
-          else if (icon instanceof HTMLElement)
-            $icon.appendChild(icon);
-        } else {
-          $icon.style.display = "none";
+        item.element = $item;
+        $item.data = item;
+        item.getIcon = () => $icon;
+        item.setIcon = (stringOrElement) => setIcon($icon, stringOrElement);
+        item.show = (show2 = true) => $item.classList[show2 ? "remove" : "add"]("hidden");
+        item.hide = (hide2 = true) => item.show(!hide2);
+        if (item.hidden)
+          item.hide();
+        if (!item.divider) {
+          setIcon($icon, item.icon);
+          $item.addEventListener("click", (event) => {
+            hide();
+            if (item.onClick)
+              item.onClick(event);
+          });
         }
-        $item.addEventListener("click", (event) => {
-          hide();
-          if (item2.onClick)
-            item2.onClick(event);
-        });
       });
       _context.element = $menu2;
       document.body.appendChild($menu2);
       return $menu2;
     }
-    function item(name) {
-      const item2 = defaultOptions3.items.find((item3) => item3.name == name);
-      return {
-        item: item2,
-        icon
-      };
-      function icon(stringOrElement) {
-        const $icon = item2.element.querySelector(".ctx-icon");
-        if (!stringOrElement)
-          return $icon;
-        $icon.innerHTML = "";
-        if (typeof stringOrElement == "string")
-          $icon.innerHTML = stringOrElement;
-        else if (stringOrElement instanceof HTMLElement)
-          $icon.appendChild(stringOrElement);
+    function setIcon($icon, stringOrElement) {
+      if (typeof stringOrElement == "undefined" || stringOrElement == null) {
+        $icon.classList.add("hidden");
+        return;
       }
+      $icon.innerHTML = "";
+      if (typeof stringOrElement == "string")
+        $icon.innerHTML = stringOrElement;
+      else if (stringOrElement instanceof HTMLElement)
+        $icon.appendChild(stringOrElement);
     }
     function show(options = {}) {
       destroy($menu);
       options = {
-        ...defaultOptions3,
+        ...menuDefaultOptions,
         ...options
       };
       let x = options.x || 0;
@@ -355,8 +376,8 @@
       }
       $menu.classList.remove(_classVisible);
       $menu.classList.add(_classInvisible);
-      if (defaultOptions3.onHide)
-        defaultOptions3.onHide(_context);
+      if (menuDefaultOptions.onHide)
+        menuDefaultOptions.onHide(_context);
       setTimeout(() => destroy($menu), 200);
       window.removeEventListener("click", hide);
       window.removeEventListener("keyup", hide);
@@ -418,7 +439,7 @@
     onShow: (menu2) => {
       menu2.options.items.forEach((item) => {
         const $item = item.element;
-        if ($item) {
+        if ($item && !item.divider) {
           $item.classList.add("!min-h-[2.5rem]");
           if (item.name.startsWith("Informa\xE7\xF5es")) {
             item.show(!!appData.srvConfig.info.createdAt);
@@ -467,11 +488,15 @@
   var Utils_default = utils;
   function Utils() {
     return {
+      generateUUID,
       form,
       pause,
       observe,
       css
     };
+    function generateUUID() {
+      return crypto.randomUUID();
+    }
     function form() {
       return {
         field
@@ -762,7 +787,7 @@
     // number | string
     minWidth = null;
     // number | string
-    resize = false;
+    resize = true;
     // boolean
     hidden = false;
     // boolean
@@ -833,7 +858,9 @@
           "afterbegin",
           /*html*/
           `
-				<label class="name" title="${options.title || ""}">${options.displayName}</label>
+				<label class="name" title="${options.title || ""}">
+					${options.displayName}
+				</label>
 				<span class="controls">
 					<i class="sort asc" title="Sort"></i>
 					<div class="resizer"></div>
@@ -857,8 +884,10 @@
             table.sort(options.name, ascendent);
           });
         }
-        if (table.options.resize || options.resize)
-          $cell2.classList.add("resizable");
+        if (table.options.resize) {
+          if (options.resize != false)
+            $cell2.classList.add("resizable");
+        }
         if (options.style)
           utils2.setElementStyle($cell2, options.style);
       }
@@ -1263,7 +1292,7 @@
       selectRows,
       unselectRows,
       rowsByFieldValue,
-      moveSelectedRows,
+      moveSelectedRows: moveSelectedRows2,
       removeRows,
       removeSelectedRows,
       removeUnselectedRows,
@@ -1471,7 +1500,7 @@
       if (options.onUnselectRows && callback)
         options.onUnselectRows({ event });
     }
-    function moveSelectedRows(down = true) {
+    function moveSelectedRows2(down = true) {
       if (options.sort) return;
       if (down) {
         for (let i = _table.rows.length - 1; i >= 0; i--) {
@@ -1557,7 +1586,7 @@
       return text;
     }
     function _setColumnWidths() {
-      let widths = _storedWidths() || _table._columnWidths;
+      let widths = _table._columnWidths;
       if (!widths) {
         widths = [];
         if (options.checkbox)
@@ -1645,22 +1674,10 @@
         $header.classList.remove("resizing");
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
-        _storedWidths(_table._columnWidths);
         if (diff && options.onResizeColumn) {
           options.onResizeColumn({ column: currentColumn, widths: _table._columnWidths });
           diff = 0;
         }
-      }
-    }
-    function _storedWidths(widths) {
-      if (widths) {
-        widths[widths.length - 1] = `minmax(${widths[widths.length - 1]}, 1fr)`;
-        localStorage.setItem(key_storedWidths, JSON.stringify(widths));
-      } else {
-        widths = localStorage.getItem(key_storedWidths);
-        if (widths)
-          _table._columnWidths = JSON.parse(widths);
-        return _table._columnWidths;
       }
     }
     function _setBorders() {
@@ -1751,17 +1768,63 @@
   };
   var renderIcons = () => window["lucide"].createIcons();
 
+  // src/models/SrvConfig.ts
+  function createSrvConfig() {
+    return {
+      versions: { desktop: null, mobile: null },
+      data: { tables: [] },
+      info: createSrvInfo()
+    };
+  }
+  function createSrvTable() {
+    return {
+      id: Utils_default.generateUUID(),
+      name: "",
+      enabled: true,
+      rows: [createSrvTableRow()]
+    };
+  }
+  function createSrvTableRow() {
+    return {
+      id: Utils_default.generateUUID(),
+      name: "",
+      description: "",
+      type: "",
+      subtype: "",
+      value: "",
+      objects: "",
+      enabled: true,
+      readonly: false,
+      required: false,
+      isGroup: false
+    };
+  }
+  function createSrvInfo() {
+    return {
+      createdAt: "",
+      createdBy: "",
+      createdByEmail: ""
+    };
+  }
+
   // src/services/DataTableService.ts
   var _columns = {
     //id: { displayName: 'Id', hidden: true },
-    name: { displayName: "Nome do campo", minWidth: 150 },
+    enabled: {
+      title: "Habilitar/Desabilitar no dispositivo m\xF3vel",
+      displayName: '<i class="icon" data-lucide="smartphone"></i>',
+      width: 60,
+      style: { paddingLeft: 22 },
+      resize: false
+    },
+    readonly: { displayName: "Edit\xE1vel", width: 60, title: "Edit\xE1vel" },
+    required: { displayName: "Obrigat\xF3rio", width: 60, title: "Obrigat\xF3rio" },
+    name: { displayName: "Nome do Campo ou Grupo", minWidth: 150 },
     description: { displayName: "Descri\xE7\xE3o", minWidth: 150 },
-    //subtype: { displayName: 'Subtipo', hidden: true },
     value: { displayName: "Valor" },
     //objects: { displayName: 'Objetos', hidden: true },
-    type: { displayName: "Tipo", width: 150 },
-    required: { displayName: "Obrigat\xF3rio", width: 90 },
-    readonly: { displayName: "Edit\xE1vel", minWidth: 90 }
+    type: { displayName: "Tipo" }
+    //subtype: { displayName: 'Subtipo', hidden: true },
   };
   var _fieldTypes = [
     { name: "", displayName: "Texto" },
@@ -1777,11 +1840,15 @@
   var dataTableService = DataTableService();
   function DataTableService() {
     return {
-      createDataTable,
-      removeDataTable
+      createTable,
+      removeTable,
+      addTableRow,
+      addTableRowGroup,
+      moveSelectedRows,
+      removeSelectedTableRows
     };
   }
-  function createDataTable(srvTableId) {
+  function createTable(srvTableId) {
     const dt = DataTable({
       id: srvTableId,
       data: [],
@@ -1809,6 +1876,42 @@
         selectOnClick: true
       },
       cells: {
+        enabled: {
+          display: ({ row, item, value }) => {
+            if (item.isGroup) return "";
+            return html`
+						<label class="flex items-center justify-center h-[32px] opacity-90">
+							<input type="checkbox" checked="${() => item.enabled}" @onChange="${(e) => {
+              item.enabled = e.element.checked;
+            }}" class="scale-[1.1]"/>
+						</label>
+					`;
+          }
+        },
+        readonly: {
+          display: ({ row, item, value }) => {
+            if (item.isGroup) return "";
+            return html`
+						<label class="flex items-center justify-center h-[32px] px-1.5 opacity-90">
+							<input type="checkbox" checked="${() => item.readonly}" @onChange="${(e) => {
+              item.readonly = e.element.checked;
+            }}" class="scale-[1.1]"/>
+						</label>
+					`;
+          }
+        },
+        required: {
+          display: ({ row, item, value }) => {
+            if (item.isGroup) return "";
+            return html`
+						<label class="flex items-center justify-center h-[32px] px-1.5 opacity-90">
+							<input type="checkbox" checked="${() => item.required}" @onChange="${(e) => {
+              item.required = e.element.checked;
+            }}" class="scale-[1.1]"/>
+						</label>
+					`;
+          }
+        },
         name: {
           display: ({ row, item, value }) => {
             return html`
@@ -1820,6 +1923,7 @@
         },
         description: {
           display: ({ row, item, value }) => {
+            if (item.isGroup) return "";
             const $field = html`
 						<textarea rows="1" @onChange="${(e) => {
               item.description = e.element.value.trim();
@@ -1831,24 +1935,9 @@
             return $field;
           }
         },
-        type: {
-          display: ({ row, item, value }) => {
-            const $field = html`
-						<select @onChange="${(e) => {
-              item.type = e.element.value;
-            }}">${_fieldTypes.map((type) => (
-              /*html*/
-              `
-							<option value="${type.displayName}">${type.displayName}</option>
-						`
-            ))}</select>
-					`;
-            $field["value"] = value;
-            return $field;
-          }
-        },
         value: {
           display: ({ row, item, value }) => {
+            if (item.isGroup) return "";
             if (item.type == "Texto") {
               const $field = html`
 							<textarea rows="1" @onChange="${(e) => {
@@ -1913,26 +2002,21 @@
 					`;
           }
         },
-        required: {
+        type: {
           display: ({ row, item, value }) => {
-            return html`
-						<label class="flex items-center justify-center w-[80px] h-[32px] px-1.5 opacity-90">
-							<input type="checkbox" checked="${() => item.required}" @onChange="${(e) => {
-              item.required = e.element.checked;
-            }}" class="scale-[1.1]"/>
-						</label>
+            if (item.isGroup) return "";
+            const $field = html`
+						<select @onChange="${(e) => {
+              item.type = e.element.value;
+            }}">${_fieldTypes.map((type) => (
+              /*html*/
+              `
+							<option value="${type.displayName}">${type.displayName}</option>
+						`
+            ))}</select>
 					`;
-          }
-        },
-        readonly: {
-          display: ({ row, item, value }) => {
-            return html`
-						<label class="flex items-center justify-center w-[56px] h-[32px] px-1.5 opacity-90">
-							<input type="checkbox" checked="${() => item.readonly}" @onChange="${(e) => {
-              item.readonly = e.element.checked;
-            }}" class="scale-[1.1]"/>
-						</label>
-					`;
+            $field["value"] = value;
+            return $field;
           }
         }
       },
@@ -1952,12 +2036,30 @@
     ui_default.dataTables.push(dt);
     return dt;
   }
-  function removeDataTable(srvTableId) {
+  function removeTable(srvTableId) {
     let dt = ui_default.dataTables.find((x) => x.id == srvTableId);
     if (dt) {
       dt.element.remove();
       dt = null;
     }
+  }
+  function addTableRow() {
+    const row = createSrvTableRow();
+    ui_default.activeDataTable.addRow(row);
+    ui_default.footer_total = ui_default.footer_total["reload"]();
+  }
+  function addTableRowGroup() {
+    const row = createSrvTableRow();
+    row.isGroup = true;
+    ui_default.activeDataTable.addRow(row);
+    ui_default.footer_total = ui_default.footer_total["reload"]();
+  }
+  function moveSelectedRows(down = true) {
+    ui_default.activeDataTable.moveSelectedRows(down);
+  }
+  function removeSelectedTableRows() {
+    ui_default.activeDataTable.removeSelectedRows();
+    ui_default.footer_total = ui_default.footer_total["reload"]();
   }
 
   // src/services/UIService.ts
@@ -1987,11 +2089,11 @@
     ];
     const toolbar_table_buttons = [
       { divider: true, hidden: false },
-      { title: "Adicionar grupo", icon: Icon("addGroup"), onClick: () => console.log("onClick") },
-      { title: "Adicionar item", icon: Icon("add"), onClick: () => console.log("onClick") },
-      { title: "Mover item selecionado para cima", icon: Icon("arrowUp"), onClick: () => console.log("onClick") },
-      { title: "Mover item selecionado para baixo", icon: Icon("arrowDown"), onClick: () => console.log("onClick") },
-      { title: "Excluir item selecionado", icon: Icon("close"), onClick: () => console.log("onClick") }
+      { title: "Adicionar grupo", icon: Icon("addGroup"), onClick: () => actions_default.addTableRowGroup() },
+      { title: "Adicionar item", icon: Icon("add"), onClick: () => actions_default.addTableRow() },
+      { title: "Mover item selecionado para cima", icon: Icon("arrowUp"), onClick: () => actions_default.moveSelectedRows(false) },
+      { title: "Mover item selecionado para baixo", icon: Icon("arrowDown"), onClick: () => actions_default.moveSelectedRows(true) },
+      { title: "Excluir item selecionado", icon: Icon("close"), onClick: () => actions_default.removeSelectedTableRows() }
     ];
     const $toolbar_actions_left_buttons = html`<div>${() => {
       toolbar_actions_left_buttons.forEach((control, index) => {
@@ -2047,7 +2149,7 @@
       return Buttons(toolbar_table_buttons);
     }}</div>`;
     const $tables = srvConfig.data.tables.map((srvTable) => {
-      const dt = dataTableService.createDataTable(srvTable.id);
+      const dt = dataTableService.createTable(srvTable.id);
       dt.load(srvTable.rows);
       return dt.element;
     });
@@ -2161,44 +2263,6 @@
     selectTableTab: uiService.selectTableTab
   };
   var ui_default = ui;
-
-  // src/models/SrvConfig.ts
-  function createSrvConfig() {
-    return {
-      versions: { desktop: null, mobile: null },
-      data: { tables: [] },
-      info: createSrvInfo()
-    };
-  }
-  function createSrvTable() {
-    return {
-      id: "",
-      name: "",
-      enabled: true,
-      rows: [createSrvTableRow()]
-    };
-  }
-  function createSrvTableRow() {
-    return {
-      id: "",
-      name: "",
-      description: "",
-      type: "",
-      subtype: "",
-      value: "",
-      objects: "",
-      required: false,
-      readonly: false,
-      isGroup: false
-    };
-  }
-  function createSrvInfo() {
-    return {
-      createdAt: "",
-      createdBy: "",
-      createdByEmail: ""
-    };
-  }
 
   // src/models/Result.ts
   function createResult() {
@@ -3066,8 +3130,12 @@
   actions_default.newFile = newFile;
   actions_default.openFile = openFile2;
   actions_default.saveFile = saveFile;
-  actions_default.closeWorkbook = srvService.closeWorkbook;
   actions_default.showFileInfo = showFileInfo;
+  actions_default.closeWorkbook = srvService.closeWorkbook;
+  actions_default.addTableRow = dataTableService.addTableRow;
+  actions_default.addTableRowGroup = dataTableService.addTableRowGroup;
+  actions_default.moveSelectedRows = dataTableService.moveSelectedRows;
+  actions_default.removeSelectedTableRows = dataTableService.removeSelectedTableRows;
   neutralinoService.setWindowTitle();
   neutralinoService.setOnWindowClose();
   start();
@@ -3089,6 +3157,7 @@
         neutralinoService.storage("appData", appData);
       }
     });
+    neutralinoService.setWindowTitle();
     ui_default.create();
     document.body.innerHTML = "";
     document.body.appendChild(ui_default.layout);
@@ -3286,14 +3355,14 @@
           add = false;
         }
         if (add) {
-          const dt = dataTableService.createDataTable(currentSrvTable.id);
+          const dt = dataTableService.createTable(currentSrvTable.id);
           dt.load(currentSrvTable.rows);
           ui_default.tables.appendChild(dt.element);
         }
       });
       appData.srvConfig.data.tables.forEach((srvTable) => {
         if (!currentSrvTables.some((currentSrvTable) => currentSrvTable.id == srvTable.id)) {
-          dataTableService.removeDataTable(srvTable.id);
+          dataTableService.removeTable(srvTable.id);
           if (ui_default.activeDataTable.id == srvTable.id) {
             ui_default.activeDataTable = null;
             ui_default.tables_buttons = ui_default.tables_buttons["reload"]();
