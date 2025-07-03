@@ -3,16 +3,24 @@
 	Descrição: Menu de contexto simples.
 */
 
-const __defaultOptions = {
+const __itemDefaultOptions = {
+	icon: null, // HTMLElement (opcional)
+	id: null, // string (opcional)
+	name: null, // string
+	description: null, // string (opcional)
+	hidden: false, // boolean (opcional)
+	onClick: null, // function
+	divider: false, // boolean
+
+	// Funções geradas do item
+	getIcon: null, // function
+	setIcon: null, // function
+	show: null, // function
+	hide: null, // function
+};
+const __menuDefaultOptions = {
 	trigger: null, // HTMLElement - Ex.: button | a | div
-	items: [], /* item: {
-		icon: HTMLElement, (opcional)
-		id: string, (opcional)
-		name: string,
-		description: string, (opcional)
-		hidden: boolean, (opcional)
-		onClick: function
-	}*/
+	items: [], // __itemDefaultOptions[]
 	position: 'left', // 'left' | 'right' | 'top left' | 'top right'
 	top: 0, // Ajuste de posição vertical (opcional)
 	left: 0, // Ajuste de posição horizontal (opcional)
@@ -29,10 +37,10 @@ window.addEventListener('resize', event => {
 	destroy(__menu);
 });
 
-export default function Menu(defaultOptions) {
-	defaultOptions = {
-		...__defaultOptions,
-		...defaultOptions,
+export default function Menu(menuDefaultOptions) {
+	menuDefaultOptions = {
+		...__menuDefaultOptions,
+		...menuDefaultOptions,
 	};
 
 	let $menu;
@@ -40,9 +48,8 @@ export default function Menu(defaultOptions) {
 	let _classInvisible = '';
 
 	const _context = {
-		options: defaultOptions,
+		options: menuDefaultOptions,
 		element: null,
-		item,
 		show,
 		hide,
 	};
@@ -50,10 +57,17 @@ export default function Menu(defaultOptions) {
 	return _context;
 
 	function create() {
+		menuDefaultOptions.items.forEach(item => {
+			item = {
+				...__itemDefaultOptions,
+				...item,
+			};
+		});
+
 		const $menu = document.createElement('div');
 
 		$menu.className = 'ctx-menu';
-		$menu.innerHTML = /*html*/`${defaultOptions.items.map(item => {
+		$menu.innerHTML = /*html*/`${menuDefaultOptions.items.map(item => {
 			if (item.divider) {
 				return /*html*/`<div class="ctx-divider"></div>`;
 			} else {
@@ -69,39 +83,40 @@ export default function Menu(defaultOptions) {
 			}
 		}).join('')}`;
 
-		if (defaultOptions.maxHeight)
-			$menu.style.maxHeight = defaultOptions.maxHeight + 'px';
+		if (menuDefaultOptions.maxHeight) {
+			let unit = typeof menuDefaultOptions.maxHeight == 'number' ? 'px' : '';
+
+			$menu.style.maxHeight = menuDefaultOptions.maxHeight + unit;
+		}
 
 		// Itens
 		$menu.querySelectorAll(':scope > div').forEach(($item, index) => {
-			const item = defaultOptions.items[index];
-			const icon = item.icon;
+			const item = menuDefaultOptions.items[index];
+			const $icon = $item.querySelector('.ctx-icon');
 
 			item.element = $item;
 			$item.data = item;
-			$item.classList[item.hidden == true ? 'add': 'remove']('hidden');
 
-			if (item.divider) return;
+			// Funções do item
+			item.getIcon = () => $icon;
+			item.setIcon = stringOrElement => setIcon($icon, stringOrElement);
+			item.show = (show = true) => $item.classList[show ? 'remove' : 'add']('hidden');
+			item.hide = (hide = true) => item.show(!hide);
 
-			// Ícone
-			const $icon = $item.querySelector('.ctx-icon');
+			if (item.hidden)
+				item.hide();
+			
+			if (!item.divider) {
+				setIcon($icon, item.icon);
 
-			if (icon != undefined && icon != null) {
-				if (typeof icon == 'string')
-					$icon.innerHTML = icon;
-				else if (icon instanceof HTMLElement)
-					$icon.appendChild(icon);
-			} else {
-				$icon.style.display = 'none';
+				// Evento
+				$item.addEventListener('click', event => {
+					hide();
+
+					if (item.onClick)
+						item.onClick(event);
+				});
 			}
-
-			// Evento
-			$item.addEventListener('click', event => {
-				hide();
-
-				if (item.onClick)
-					item.onClick(event);
-			});
 		});
 
 		_context.element = $menu;
@@ -110,34 +125,26 @@ export default function Menu(defaultOptions) {
 		return $menu;
 	}
 
-	function item(name) {
-		const item = defaultOptions.items.find(item => item.name == name);
+	function setIcon($icon, stringOrElement) {
+		if (
+			!$icon ||
+			typeof stringOrElement == 'undefined' ||
+			stringOrElement == null
+		) return;
 
-		return {
-			item,
-			icon,
-		};
+		$icon.innerHTML = '';
 
-		function icon(stringOrElement) {
-			const $icon = item.element.querySelector('.ctx-icon');
-
-			if (!stringOrElement)
-				return $icon;
-
-			$icon.innerHTML = '';
-
-			if (typeof stringOrElement == 'string')
-				$icon.innerHTML = stringOrElement;
-			else if (stringOrElement instanceof HTMLElement)
-				$icon.appendChild(stringOrElement);
-		}
+		if (typeof stringOrElement == 'string')
+			$icon.innerHTML = stringOrElement;
+		else if (stringOrElement instanceof HTMLElement)
+			$icon.appendChild(stringOrElement);
 	}
 
 	function show(options = {}) {
 		destroy($menu);
 
 		options = {
-			...defaultOptions,
+			...menuDefaultOptions,
 			...options,
 		};
 
@@ -205,8 +212,8 @@ export default function Menu(defaultOptions) {
 		$menu.classList.remove(_classVisible);
 		$menu.classList.add(_classInvisible);
 
-		if (defaultOptions.onHide)
-			defaultOptions.onHide(_context);
+		if (menuDefaultOptions.onHide)
+			menuDefaultOptions.onHide(_context);
 
 		setTimeout(() => destroy($menu), 200);
 
