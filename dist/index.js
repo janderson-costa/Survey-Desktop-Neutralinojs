@@ -1807,6 +1807,126 @@
     };
   }
 
+  // src/lib/Modal/Modal.js
+  var __modalDefaultOptions = {
+    title: "Title",
+    // string,
+    content: "Content",
+    // string | Element,
+    width: 360,
+    // number
+    hideOut: true,
+    // boolean - Fechar o modal ao clicar fora
+    buttons: [],
+    // __buttonDefaultOptions[]
+    onHide: null,
+    // function (opcional)
+    onShow: null
+    // function (opcional)
+  };
+  function Modal(modalOptions) {
+    modalOptions = { ...__modalDefaultOptions, ...modalOptions };
+    let _blocked = false;
+    let $overlay;
+    let $buttons;
+    const _context = {
+      options: modalOptions,
+      show,
+      hide,
+      block,
+      showSpin
+    };
+    return _context;
+    function create2() {
+      const $overlay2 = document.createElement("div");
+      $overlay2.className = "modal-overlay";
+      $overlay2.innerHTML = /*html*/
+      `
+			<div class="modal">
+				<div class="modal-title">
+					<span>${modalOptions.title}</span>
+					<span class="modal-spin"></span>
+				</div>
+				<div class="modal-content"></div>
+				<div class="modal-buttons"></div>
+			</div>
+		`;
+      const $modal = $overlay2.querySelector(".modal");
+      const $content = $overlay2.querySelector(".modal-content");
+      $overlay2.addEventListener("click", () => {
+        if (modalOptions.hideOut)
+          hide();
+      });
+      $modal.addEventListener("click", (event) => event.stopPropagation());
+      if (modalOptions.width)
+        $modal.style.width = modalOptions.width + "px";
+      if (modalOptions.content instanceof HTMLElement)
+        $content.appendChild(modalOptions.content);
+      else
+        $content.innerHTML = modalOptions.content;
+      modalOptions.buttons = modalOptions.buttons || [];
+      $buttons = $overlay2.querySelector(".modal-buttons");
+      modalOptions.buttons.forEach((button) => {
+        const $button = document.createElement("button");
+        $button.type = "button";
+        $button.innerHTML = button.name;
+        $button.classList.toggle("primary", !!button.primary);
+        button.element = $button;
+        if (button.onClick)
+          $button.addEventListener("click", () => button.onClick(_context));
+        $buttons.appendChild($button);
+      });
+      return $overlay2;
+    }
+    function show() {
+      $overlay = create2();
+      document.body.appendChild($overlay);
+      $overlay.classList.remove("modal-invisible");
+      $overlay.classList.add("modal-visible");
+      window.addEventListener("keydown", onKeyDown);
+      modalOptions.buttons.forEach((button) => {
+        if (button.focused)
+          button.element.focus();
+      });
+      if (modalOptions.onShow)
+        modalOptions.onShow(_context);
+    }
+    function hide() {
+      destroy2();
+    }
+    function block(block2 = true) {
+      if (!modalOptions.buttons) return;
+      _blocked = block2;
+      $buttons.querySelectorAll("button").forEach(($button) => {
+        $button.blur();
+        $button.classList.toggle("disabled", block2);
+      });
+    }
+    function showSpin(show2 = true) {
+      $overlay.querySelector(".modal-spin").classList.toggle("visible", show2);
+    }
+    function destroy2() {
+      if (_blocked) return;
+      $overlay.classList.remove("modal-visible");
+      $overlay.classList.add("modal-invisible");
+      if (modalOptions.onHide)
+        modalOptions.onHide(_context);
+      setTimeout(() => {
+        $overlay.remove();
+        window.removeEventListener("keydown", onKeyDown);
+      }, 200);
+    }
+    function onKeyDown(event) {
+      if (event.key == "Tab") {
+        if (_blocked)
+          event.preventDefault();
+      }
+      if (event.key == "Escape") {
+        destroy2();
+      }
+    }
+  }
+
   // src/services/DataTableService.ts
   var _columns = {
     //id: { displayName: 'Id', hidden: true },
@@ -1883,6 +2003,8 @@
 						<label class="flex items-center justify-center h-[32px] opacity-90">
 							<input type="checkbox" checked="${() => item.enabled}" @onChange="${(e) => {
               item.enabled = e.element.checked;
+              row.cell("required").disable(!item.enabled);
+              row.cell("readonly").disable(!item.enabled);
             }}" class="scale-[1.1]"/>
 						</label>
 					`;
@@ -2058,8 +2180,28 @@
     ui_default.activeDataTable.moveSelectedRows(down);
   }
   function removeSelectedTableRows() {
-    ui_default.activeDataTable.removeSelectedRows();
-    ui_default.footer_total = ui_default.footer_total["reload"]();
+    Modal({
+      title: "Exluir item",
+      content: `O item selecionado ser\xE1 exclu\xEDdo de forma permanente.<br><br>Deseja continuar?`,
+      buttons: [
+        {
+          name: "Excluir",
+          primary: true,
+          onClick: async (modal) => {
+            ui_default.activeDataTable.removeSelectedRows();
+            ui_default.footer_total = ui_default.footer_total["reload"]();
+            modal.hide();
+          }
+        },
+        {
+          name: "Cancelar",
+          onClick: (modal) => modal.hide()
+        }
+      ],
+      onShow: (modal) => {
+        modal.options.buttons[0].element.focus();
+      }
+    }).show();
   }
 
   // src/services/UIService.ts
@@ -2273,133 +2415,6 @@
     };
   }
 
-  // src/lib/Modal/Modal.js
-  var defaultOptions = {
-    title: "",
-    // string,
-    content: "",
-    // string/HTMLElement,
-    width: 360,
-    // number
-    hideOut: true,
-    // boolean - Fechar o modal ao clicar fora
-    buttons: null,
-    /* [
-    	{
-    		name: 'OK',
-    		primary: true,
-    		focused: true,
-    		onClick: function
-    	}, 
-    	{
-    		name: 'Cancelar',
-    		primary: false,
-    		onClick: function
-    	}
-    ]*/
-    onHide: null
-  };
-  function Modal(options) {
-    options = { ...defaultOptions, ...options };
-    let _blocked = false;
-    let $overlay;
-    let $buttons;
-    const _context = {
-      options,
-      show,
-      hide,
-      block,
-      showSpin
-    };
-    return _context;
-    function create2() {
-      const $overlay2 = document.createElement("div");
-      $overlay2.className = "modal-overlay";
-      $overlay2.innerHTML = /*html*/
-      `
-			<div class="modal">
-				<div class="modal-title">
-					<span>${options.title}</span>
-					<span class="modal-spin"></span>
-				</div>
-				<div class="modal-content"></div>
-				<div class="modal-buttons"></div>
-			</div>
-		`;
-      const $modal = $overlay2.querySelector(".modal");
-      const $content = $overlay2.querySelector(".modal-content");
-      $overlay2.addEventListener("click", () => {
-        if (options.hideOut)
-          hide();
-      });
-      $modal.addEventListener("click", (event) => event.stopPropagation());
-      if (options.width)
-        $modal.style.width = options.width + "px";
-      if (options.content instanceof HTMLElement)
-        $content.appendChild(options.content);
-      else
-        $content.innerHTML = options.content;
-      options.buttons = options.buttons || [];
-      $buttons = $overlay2.querySelector(".modal-buttons");
-      options.buttons.forEach((button) => {
-        const $button = document.createElement("button");
-        $button.type = "button";
-        $button.innerHTML = button.name;
-        $button.classList.toggle("primary", !!button.primary);
-        button.element = $button;
-        if (button.onClick)
-          $button.addEventListener("click", () => button.onClick(_context));
-        $buttons.appendChild($button);
-      });
-      return $overlay2;
-    }
-    function show() {
-      $overlay = create2();
-      document.body.appendChild($overlay);
-      $overlay.classList.remove("modal-invisible");
-      $overlay.classList.add("modal-visible");
-      window.addEventListener("keydown", onKeyDown);
-      options.buttons.forEach((button) => {
-        if (button.focused)
-          button.element.focus();
-      });
-    }
-    function hide() {
-      destroy2();
-    }
-    function block(block2 = true) {
-      if (!options.buttons) return;
-      _blocked = block2;
-      $buttons.querySelectorAll("button").forEach(($button) => {
-        $button.blur();
-        $button.classList.toggle("disabled", block2);
-      });
-    }
-    function showSpin(show2 = true) {
-      $overlay.querySelector(".modal-spin").classList.toggle("visible", show2);
-    }
-    function destroy2() {
-      if (_blocked) return;
-      $overlay.classList.remove("modal-visible");
-      $overlay.classList.add("modal-invisible");
-      if (options.onHide)
-        options.onHide(_context);
-      setTimeout(() => {
-        $overlay.remove();
-        window.removeEventListener("keydown", onKeyDown);
-      }, 200);
-    }
-    function onKeyDown(event) {
-      if (event.key == "Tab") {
-        if (_blocked)
-          event.preventDefault();
-      }
-      if (event.key == "Escape") {
-        destroy2();
-      }
-    }
-  }
-
   // src/services/NeutralinoService.ts
   var neutralinoService = NeutralinoService();
   function NeutralinoService() {
@@ -2462,7 +2477,7 @@
     }
   }
   async function showFileDialog(options = { title: "", target: "", filters: [] }) {
-    const defaultOptions3 = {
+    const defaultOptions2 = {
       title: "Abrir",
       target: "open",
       // open | save | folder
@@ -2472,7 +2487,7 @@
     };
     const result = createResult();
     let entries;
-    options = { ...defaultOptions3, ...options };
+    options = { ...defaultOptions2, ...options };
     if (options.target == "open") {
       entries = await Neutralino.os.showOpenDialog(options.title, { filters: options.filters, multiSelections: false });
     } else if (options.target == "save") {
@@ -2937,7 +2952,7 @@
   }
 
   // src/lib/Toast/Toast.js
-  var defaultOptions2 = {
+  var defaultOptions = {
     icon: null,
     // HTMLElement | string
     message: null,
@@ -2970,7 +2985,7 @@
     document.body.after($toasts);
   }
   function Toast(options = {}) {
-    options = { ...defaultOptions2, ...options };
+    options = { ...defaultOptions, ...options };
     let $toastWrapper;
     let _interval;
     $toasts.style.inset = `${options.inset}px`;

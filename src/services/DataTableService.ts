@@ -4,6 +4,7 @@ import { html } from '../lib/html/html.js';
 import { DataTable } from '../lib/DataTable/src/index.js';
 import { renderIcons } from '../components/Icon.js';
 import { createSrvTableRow } from '../models/SrvConfig.js';
+import Modal from '../lib/Modal/Modal.js';
 
 const _columns = {
 	//id: { displayName: 'Id', hidden: true },
@@ -87,8 +88,8 @@ function createTable(srvTableId: string) {
 							<input type="checkbox" checked="${() => item.enabled}" @onChange="${e => {
 								item.enabled = e.element.checked;
 
-								// row.cell('required').disable(!item.enabled);
-								// row.cell('readonly').disable(!item.enabled);
+								row.cell('required').disable(!item.enabled);
+								row.cell('readonly').disable(!item.enabled);
 							}}" class="scale-[1.1]"/>
 						</label>
 					`;
@@ -286,6 +287,23 @@ function moveSelectedRows(down = true) {
 }
 
 function removeSelectedTableRows() {
-	ui.activeDataTable.removeSelectedRows();
-	ui.footer_total = ui.footer_total['reload']();
+	Modal({
+		title: 'Exluir item',
+		content: `O item selecionado será excluído de forma permanente.<br><br>Deseja continuar?`,
+		buttons: [
+			{
+				name: 'Excluir', primary: true, onClick: async modal => {
+					ui.activeDataTable.removeSelectedRows();
+					ui.footer_total = ui.footer_total['reload']();
+					modal.hide();
+				}
+			},
+			{
+				name: 'Cancelar', onClick: modal => modal.hide()
+			},
+		],
+		onShow: modal => {
+			modal.options.buttons[0].element.focus();
+		}
+	}).show();
 }

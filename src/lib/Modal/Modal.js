@@ -2,37 +2,31 @@
 	Criado por Janderson Costa em  27/05/2024.
 	Descrição: Caixa de diálogo do tipo modal simples.
 */
-
-const defaultOptions = {
-	title: '', // string,
-	content: '', // string/HTMLElement,
+const __buttonDefaultOptions = {
+	name: 'OK',
+	primary: true,
+	focused: false,
+	onClick: null
+};
+const __modalDefaultOptions = {
+	title: 'Title', // string,
+	content: 'Content', // string | Element,
 	width: 360, // number
 	hideOut: true, // boolean - Fechar o modal ao clicar fora
-	buttons: null, /* [
-		{
-			name: 'OK',
-			primary: true,
-			focused: true,
-			onClick: function
-		}, 
-		{
-			name: 'Cancelar',
-			primary: false,
-			onClick: function
-		}
-	]*/
-	onHide: null,
+	buttons: [], // __buttonDefaultOptions[]
+	onHide: null, // function (opcional)
+	onShow: null, // function (opcional)
 };
 
-export default function Modal(options) {
-	options = { ...defaultOptions, ...options };
+export default function Modal(modalOptions) {
+	modalOptions = { ...__modalDefaultOptions, ...modalOptions };
 
 	let _blocked = false;
 	let $overlay;
 	let $buttons;
 
 	const _context = {
-		options,
+		options: modalOptions,
 		show,
 		hide,
 		block,
@@ -48,7 +42,7 @@ export default function Modal(options) {
 		$overlay.innerHTML = /*html*/`
 			<div class="modal">
 				<div class="modal-title">
-					<span>${options.title}</span>
+					<span>${modalOptions.title}</span>
 					<span class="modal-spin"></span>
 				</div>
 				<div class="modal-content"></div>
@@ -58,28 +52,28 @@ export default function Modal(options) {
 		const $modal = $overlay.querySelector('.modal');
 		const $content = $overlay.querySelector('.modal-content');
 
-		// overlay
+		// Overlay
 		$overlay.addEventListener('click', () => {
-			if (options.hideOut)
+			if (modalOptions.hideOut)
 				hide();
 		});
 
-		// modal
+		// Modal
 		$modal.addEventListener('click', event => event.stopPropagation());
 
-		if (options.width)
-			$modal.style.width = options.width + 'px';
+		if (modalOptions.width)
+			$modal.style.width = modalOptions.width + 'px';
 
-		if (options.content instanceof HTMLElement)
-			$content.appendChild(options.content);
+		if (modalOptions.content instanceof HTMLElement)
+			$content.appendChild(modalOptions.content);
 		else
-			$content.innerHTML = options.content;
+			$content.innerHTML = modalOptions.content;
 
-		// botões
-		options.buttons = options.buttons || [];
+		// Botões
+		modalOptions.buttons = modalOptions.buttons || [];
 		$buttons = $overlay.querySelector('.modal-buttons');
 
-		options.buttons.forEach(button => {
+		modalOptions.buttons.forEach(button => {
 			const $button = document.createElement('button');
 
 			$button.type = 'button';
@@ -104,10 +98,13 @@ export default function Modal(options) {
 		$overlay.classList.add('modal-visible');
 		window.addEventListener('keydown', onKeyDown);
 
-		options.buttons.forEach(button => {
+		modalOptions.buttons.forEach(button => {
 			if (button.focused)
 				button.element.focus();
 		});
+
+		if (modalOptions.onShow)
+			modalOptions.onShow(_context);
 	}
 
 	function hide() {
@@ -115,7 +112,7 @@ export default function Modal(options) {
 	}
 
 	function block(block = true) {
-		if (!options.buttons) return;
+		if (!modalOptions.buttons) return;
 
 		_blocked = block;
 
@@ -135,8 +132,8 @@ export default function Modal(options) {
 		$overlay.classList.remove('modal-visible');
 		$overlay.classList.add('modal-invisible');
 
-		if (options.onHide)
-			options.onHide(_context);
+		if (modalOptions.onHide)
+			modalOptions.onHide(_context);
 
 		setTimeout(() => {
 			$overlay.remove();
