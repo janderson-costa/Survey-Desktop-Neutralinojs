@@ -31,7 +31,7 @@ neutralinoService.setOnWindowClose();
 //neutralinoService.storage('appData', null); // ! *** Habilitar para produção ***
 
 start();
-observeSheets();
+//observeSheets();
 
 async function start() {
 	constants.root_path = await Neutralino.filesystem.getAbsolutePath(NL_PATH);
@@ -227,7 +227,11 @@ async function saveFile(confirm = false) {
 						}
 					},
 				],
-			}).show();
+				onShow: modal => {
+					modal.options.buttons[0].element.focus();
+				}
+			}
+		).show();
 		});
 	} else {
 		return save();

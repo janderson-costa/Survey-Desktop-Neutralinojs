@@ -231,7 +231,7 @@ async function saveSrv(srvConfig: SrvConfig) {
 	let success = result.data;
 
 	if (!success) {
-		result.error = 'Não foi possível salvar a planilha temp.xls(x).<br><br>Verifique se: <br> - O arquivo está aberto no  Excel.<br> - Não há subjanelas abertas dentro do Excel.<br> - Células em modo de edição.<br> - Outro fator que esteja impedindo o salvamento<br><br>Tente salvar novamente.';
+		result.error = 'Não foi possível salvar a planilha.<br><br>Verifique se: <br> - O arquivo temp.xls(x) está aberto no Excel.<br> - Não há subjanelas abertas dentro do Excel.<br> - Células em modo de edição.<br> - Outro fator que esteja impedindo o salvamento.<br><br>Tente salvar novamente.';
 
 		console.log(result.error);
 		return result;

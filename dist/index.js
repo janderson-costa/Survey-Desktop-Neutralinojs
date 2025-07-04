@@ -2808,7 +2808,7 @@
     result = await saveWorkbook();
     let success = result.data;
     if (!success) {
-      result.error = "N\xE3o foi poss\xEDvel salvar a planilha temp.xls(x).<br><br>Verifique se: <br> - O arquivo est\xE1 aberto no  Excel.<br> - N\xE3o h\xE1 subjanelas abertas dentro do Excel.<br> - C\xE9lulas em modo de edi\xE7\xE3o.<br> - Outro fator que esteja impedindo o salvamento<br><br>Tente salvar novamente.";
+      result.error = "N\xE3o foi poss\xEDvel salvar a planilha.<br><br>Verifique se: <br> - O arquivo temp.xls(x) est\xE1 aberto no Excel.<br> - N\xE3o h\xE1 subjanelas abertas dentro do Excel.<br> - C\xE9lulas em modo de edi\xE7\xE3o.<br> - Outro fator que esteja impedindo o salvamento.<br><br>Tente salvar novamente.";
       console.log(result.error);
       return result;
     }
@@ -3154,7 +3154,6 @@
   neutralinoService.setWindowTitle();
   neutralinoService.setOnWindowClose();
   start();
-  observeSheets();
   async function start() {
     constants_default.root_path = await Neutralino.filesystem.getAbsolutePath(NL_PATH);
     const appDataStored = await neutralinoService.storage("appData");
@@ -3265,36 +3264,41 @@
   async function saveFile(confirm = false) {
     if (confirm) {
       return new Promise(async (resolve) => {
-        Modal({
-          title: "Survey",
-          content: `Deseja salvar as altera\xE7\xF5es em ${appData.srvFileName}?`,
-          hideOut: false,
-          buttons: [
-            {
-              name: "Savar",
-              primary: true,
-              onClick: async (modal) => {
-                modal.hide();
-                const result = await save();
-                resolve(result);
+        Modal(
+          {
+            title: "Survey",
+            content: `Deseja salvar as altera\xE7\xF5es em ${appData.srvFileName}?`,
+            hideOut: false,
+            buttons: [
+              {
+                name: "Savar",
+                primary: true,
+                onClick: async (modal) => {
+                  modal.hide();
+                  const result = await save();
+                  resolve(result);
+                }
+              },
+              {
+                name: "N\xE3o salvar",
+                onClick: (modal) => {
+                  modal.hide();
+                  resolve(false);
+                }
+              },
+              {
+                name: "Cancelar",
+                onClick: (modal) => {
+                  modal.hide();
+                  resolve("canceled");
+                }
               }
-            },
-            {
-              name: "N\xE3o salvar",
-              onClick: (modal) => {
-                modal.hide();
-                resolve(false);
-              }
-            },
-            {
-              name: "Cancelar",
-              onClick: (modal) => {
-                modal.hide();
-                resolve("canceled");
-              }
+            ],
+            onShow: (modal) => {
+              modal.options.buttons[0].element.focus();
             }
-          ]
-        }).show();
+          }
+        ).show();
       });
     } else {
       return save();
@@ -3339,69 +3343,5 @@
       ]
     });
     modal.show();
-  }
-  async function observeSheets() {
-    await Utils_default.pause(1e3);
-    if (appData.state.creating || appData.state.opening || !appData.state.opened) {
-      observeSheets();
-      return;
-    }
-    ;
-    const result = await srvService.getSheets();
-    if (result.data) {
-      if (JSON.stringify(appData.sheets.map((x) => x.name)) == JSON.stringify(result.data.map((x) => x.name))) {
-        observeSheets();
-        return;
-      }
-      appData.sheets = result.data;
-      const currentSrvTables = [];
-      appData.sheets.forEach((sheet) => {
-        const srvTable = createSrvTable();
-        srvTable.id = sheet.id;
-        srvTable.name = sheet.name;
-        srvTable.enabled = false;
-        currentSrvTables.push(srvTable);
-      });
-      currentSrvTables.forEach((currentSrvTable, index) => {
-        const srvTable = appData.srvConfig.data.tables.find((x) => x.id == currentSrvTable.id);
-        let add = true;
-        if (srvTable) {
-          currentSrvTables[index] = srvTable;
-          add = false;
-        }
-        if (add) {
-          const dt = dataTableService.createTable(currentSrvTable.id);
-          dt.load(currentSrvTable.rows);
-          ui_default.tables.appendChild(dt.element);
-        }
-      });
-      appData.srvConfig.data.tables.forEach((srvTable) => {
-        if (!currentSrvTables.some((currentSrvTable) => currentSrvTable.id == srvTable.id)) {
-          dataTableService.removeTable(srvTable.id);
-          if (ui_default.activeDataTable.id == srvTable.id) {
-            ui_default.activeDataTable = null;
-            ui_default.tables_buttons = ui_default.tables_buttons["reload"]();
-          }
-        }
-      });
-      proxy_default.appData.srvConfig.data.tables = currentSrvTables;
-      ui_default.tables_tabs = ui_default.tables_tabs["reload"]();
-    } else {
-      Modal({
-        title: "Survey",
-        content: "Mantenha o arquivo temp.xls(x) aberto enquanto executa o aplicativo.",
-        hideOut: false,
-        buttons: [
-          { name: "OK", onClick: (modal) => modal.hide() }
-        ],
-        onHide: async (modal) => {
-          await neutralinoService.openFile({ filePath: `${constants_default.temp_folder_path}/${appData.excelFileName}` });
-          await Utils_default.pause(5e3);
-          observeSheets();
-        }
-      }).show();
-      return;
-    }
-    observeSheets();
   }
 })();
