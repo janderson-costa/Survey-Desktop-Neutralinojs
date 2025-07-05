@@ -23,16 +23,25 @@
 		hideOut: true,
 		buttons: [
 			{ name: 'OK', primary: true, focused: true, onClick: modal => {
-				console.log('OK!!');
+				console.log('OK!!', modal);
 				modal.hide();
 			}},
-			{ name: 'Cancel' }
+			{ name: 'Cancel', onClick: modal => modal.hide() }
 		],
+		onHide: modal => {
+			console.log('onHide', modal);
+		}
 	});
 
 	document.querySelector('button').addEventListener('click', () => {
 		modal.show();
 		modal.showSpin();
+		modal.block();
+
+		setTimeout(() => {
+			modal.showSpin(false);
+			modal.block(false);
+		}, 1000);
 	});
 
 </script>

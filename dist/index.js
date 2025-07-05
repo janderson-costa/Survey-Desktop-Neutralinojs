@@ -1808,7 +1808,7 @@
   }
 
   // src/lib/Modal/Modal.js
-  var __modalDefaultOptions = {
+  var modalDefaultOptions = {
     title: "Title",
     // string,
     content: "Content",
@@ -1818,54 +1818,76 @@
     hideOut: true,
     // boolean - Fechar o modal ao clicar fora
     buttons: [],
-    // __buttonDefaultOptions[]
+    // buttonDefaultOptions[]
     onHide: null,
     // function (opcional)
     onShow: null
     // function (opcional)
   };
   function Modal(modalOptions) {
-    modalOptions = { ...__modalDefaultOptions, ...modalOptions };
-    let _blocked = false;
-    let $overlay;
-    let $buttons;
+    modalOptions = { ...modalDefaultOptions, ...modalOptions };
+    const _elements = {
+      overlay: null,
+      modal: null,
+      title: null,
+      content: null,
+      buttons: null
+    };
     const _context = {
       options: modalOptions,
+      elements: _elements,
       show,
       hide,
-      block,
-      showSpin
+      showSpin,
+      block
     };
+    let _blocked = false;
     return _context;
     function create2() {
-      const $overlay2 = document.createElement("div");
-      $overlay2.className = "modal-overlay";
-      $overlay2.innerHTML = /*html*/
+      _elements.overlay = document.createElement("div");
+      _elements.overlay.className = "modal-overlay";
+      _elements.overlay.innerHTML = /*html*/
       `
 			<div class="modal">
 				<div class="modal-title">
-					<span>${modalOptions.title}</span>
-					<span class="modal-spin"></span>
+					<div>${modalOptions.title}</div>
+					<div class="modal-controls">
+						<div class="modal-close">
+							<button type="button" class="toast-button-icon" title="Fechar">
+								<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="none" viewBox="0 0 14 14">
+									<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+								</svg>
+							</button>
+						</div>
+						<div class="modal-spin hidden">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+								<circle fill="none" stroke="currentColor" stroke-width="12" opacity="0.3" cx="50" cy="50" r="40"></circle>
+								<circle fill="none" stroke="currentColor" stroke-width="12" opacity="0.9" stroke-dasharray="278" stroke-dashoffset="210" cx="50" cy="50" r="40"></circle>
+							</svg>
+						</div>
+					</div>
 				</div>
 				<div class="modal-content"></div>
-				<div class="modal-buttons"></div>
+				<div class="modal-buttons hidden"></div>
 			</div>
 		`;
-      const $modal = $overlay2.querySelector(".modal");
-      const $content = $overlay2.querySelector(".modal-content");
-      $overlay2.addEventListener("click", () => {
+      _elements.modal = _elements.overlay.querySelector(".modal");
+      _elements.title = _elements.modal.querySelector(".modal-title");
+      _elements.content = _elements.overlay.querySelector(".modal-content");
+      _elements.buttons = _elements.overlay.querySelector(".modal-buttons");
+      _elements.overlay.addEventListener("click", () => {
         if (modalOptions.hideOut)
           hide();
       });
-      $modal.addEventListener("click", (event) => event.stopPropagation());
+      _elements.modal.addEventListener("click", (event) => event.stopPropagation());
+      _elements.title.querySelector(".modal-close").addEventListener("click", hide);
       if (modalOptions.width)
-        $modal.style.width = modalOptions.width + "px";
-      if (modalOptions.content instanceof HTMLElement)
-        $content.appendChild(modalOptions.content);
+        _elements.modal.style.width = modalOptions.width + "px";
+      if (modalOptions.content instanceof Element)
+        _elements.content.appendChild(modalOptions.content);
       else
-        $content.innerHTML = modalOptions.content;
+        _elements.content.innerHTML = modalOptions.content;
       modalOptions.buttons = modalOptions.buttons || [];
-      $buttons = $overlay2.querySelector(".modal-buttons");
       modalOptions.buttons.forEach((button) => {
         const $button = document.createElement("button");
         $button.type = "button";
@@ -1874,15 +1896,17 @@
         button.element = $button;
         if (button.onClick)
           $button.addEventListener("click", () => button.onClick(_context));
-        $buttons.appendChild($button);
+        _elements.buttons.appendChild($button);
       });
-      return $overlay2;
+      if (modalOptions.buttons.length)
+        _elements.buttons.classList.remove("hidden");
+      return _elements.overlay;
     }
     function show() {
-      $overlay = create2();
-      document.body.appendChild($overlay);
-      $overlay.classList.remove("modal-invisible");
-      $overlay.classList.add("modal-visible");
+      create2();
+      document.body.appendChild(_elements.overlay);
+      _elements.overlay.classList.remove("modal-invisible");
+      _elements.overlay.classList.add("modal-visible");
       window.addEventListener("keydown", onKeyDown);
       modalOptions.buttons.forEach((button) => {
         if (button.focused)
@@ -1897,22 +1921,23 @@
     function block(block2 = true) {
       if (!modalOptions.buttons) return;
       _blocked = block2;
-      $buttons.querySelectorAll("button").forEach(($button) => {
+      _elements.buttons.querySelectorAll("button").forEach(($button) => {
         $button.blur();
         $button.classList.toggle("disabled", block2);
       });
     }
     function showSpin(show2 = true) {
-      $overlay.querySelector(".modal-spin").classList.toggle("visible", show2);
+      _elements.overlay.querySelector(".modal-close").classList[show2 ? "add" : "remove"]("hidden");
+      _elements.overlay.querySelector(".modal-spin").classList[show2 ? "remove" : "add"]("hidden");
     }
     function destroy2() {
       if (_blocked) return;
-      $overlay.classList.remove("modal-visible");
-      $overlay.classList.add("modal-invisible");
+      _elements.overlay.classList.remove("modal-visible");
+      _elements.overlay.classList.add("modal-invisible");
       if (modalOptions.onHide)
         modalOptions.onHide(_context);
       setTimeout(() => {
-        $overlay.remove();
+        _elements.overlay.remove();
         window.removeEventListener("keydown", onKeyDown);
       }, 200);
     }

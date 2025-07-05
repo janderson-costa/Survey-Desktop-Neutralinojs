@@ -2,76 +2,99 @@
 	Criado por Janderson Costa em  27/05/2024.
 	Descrição: Caixa de diálogo do tipo modal simples.
 */
-const __buttonDefaultOptions = {
+
+const buttonDefaultOptions = {
 	name: 'OK',
 	primary: true,
 	focused: false,
-	onClick: null
+	onClick: null,
 };
-const __modalDefaultOptions = {
+const modalDefaultOptions = {
 	title: 'Title', // string,
 	content: 'Content', // string | Element,
 	width: 360, // number
 	hideOut: true, // boolean - Fechar o modal ao clicar fora
-	buttons: [], // __buttonDefaultOptions[]
+	buttons: [], // buttonDefaultOptions[]
 	onHide: null, // function (opcional)
 	onShow: null, // function (opcional)
 };
 
 export default function Modal(modalOptions) {
-	modalOptions = { ...__modalDefaultOptions, ...modalOptions };
+	modalOptions = { ...modalDefaultOptions, ...modalOptions };
 
-	let _blocked = false;
-	let $overlay;
-	let $buttons;
-
+	const _elements = {
+		overlay: null,
+		modal: null,
+		title: null,
+		content: null,
+		buttons: null,
+	};
 	const _context = {
 		options: modalOptions,
+		elements: _elements,
 		show,
 		hide,
-		block,
 		showSpin,
+		block,
 	};
+	let _blocked = false;
 
 	return _context;
 
 	function create() {
-		const $overlay = document.createElement('div');
-
-		$overlay.className = 'modal-overlay';
-		$overlay.innerHTML = /*html*/`
+		_elements.overlay = document.createElement('div');
+		_elements.overlay.className = 'modal-overlay';
+		_elements.overlay.innerHTML = /*html*/`
 			<div class="modal">
 				<div class="modal-title">
-					<span>${modalOptions.title}</span>
-					<span class="modal-spin"></span>
+					<div>${modalOptions.title}</div>
+					<div class="modal-controls">
+						<div class="modal-close">
+							<button type="button" class="toast-button-icon" title="Fechar">
+								<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" fill="none" viewBox="0 0 14 14">
+									<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+								</svg>
+							</button>
+						</div>
+						<div class="modal-spin hidden">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+								<circle fill="none" stroke="currentColor" stroke-width="12" opacity="0.3" cx="50" cy="50" r="40"></circle>
+								<circle fill="none" stroke="currentColor" stroke-width="12" opacity="0.9" stroke-dasharray="278" stroke-dashoffset="210" cx="50" cy="50" r="40"></circle>
+							</svg>
+						</div>
+					</div>
 				</div>
 				<div class="modal-content"></div>
-				<div class="modal-buttons"></div>
+				<div class="modal-buttons hidden"></div>
 			</div>
 		`;
-		const $modal = $overlay.querySelector('.modal');
-		const $content = $overlay.querySelector('.modal-content');
+
+		// Elementos
+		_elements.modal = _elements.overlay.querySelector('.modal');
+		_elements.title = _elements.modal.querySelector('.modal-title')
+		_elements.content = _elements.overlay.querySelector('.modal-content');
+		_elements.buttons = _elements.overlay.querySelector('.modal-buttons');
 
 		// Overlay
-		$overlay.addEventListener('click', () => {
+		_elements.overlay.addEventListener('click', () => {
 			if (modalOptions.hideOut)
 				hide();
 		});
 
 		// Modal
-		$modal.addEventListener('click', event => event.stopPropagation());
+		_elements.modal.addEventListener('click', event => event.stopPropagation());
+		_elements.title.querySelector('.modal-close').addEventListener('click', hide);
 
 		if (modalOptions.width)
-			$modal.style.width = modalOptions.width + 'px';
+		_elements.modal.style.width = modalOptions.width + 'px';
 
-		if (modalOptions.content instanceof HTMLElement)
-			$content.appendChild(modalOptions.content);
+		if (modalOptions.content instanceof Element)
+			_elements.content.appendChild(modalOptions.content);
 		else
-			$content.innerHTML = modalOptions.content;
+			_elements.content.innerHTML = modalOptions.content;
 
 		// Botões
 		modalOptions.buttons = modalOptions.buttons || [];
-		$buttons = $overlay.querySelector('.modal-buttons');
 
 		modalOptions.buttons.forEach(button => {
 			const $button = document.createElement('button');
@@ -85,17 +108,21 @@ export default function Modal(modalOptions) {
 			if (button.onClick)
 				$button.addEventListener('click', () => button.onClick(_context));
 
-			$buttons.appendChild($button);
+			_elements.buttons.appendChild($button);
 		});
 
-		return $overlay;
+		if (modalOptions.buttons.length)
+			_elements.buttons.classList.remove('hidden');
+
+		return _elements.overlay;
 	}
 
 	function show() {
-		$overlay = create();
-		document.body.appendChild($overlay);
-		$overlay.classList.remove('modal-invisible');
-		$overlay.classList.add('modal-visible');
+		create();
+
+		document.body.appendChild(_elements.overlay);
+		_elements.overlay.classList.remove('modal-invisible');
+		_elements.overlay.classList.add('modal-visible');
 		window.addEventListener('keydown', onKeyDown);
 
 		modalOptions.buttons.forEach(button => {
@@ -116,27 +143,28 @@ export default function Modal(modalOptions) {
 
 		_blocked = block;
 
-		$buttons.querySelectorAll('button').forEach($button => {
+		_elements.buttons.querySelectorAll('button').forEach($button => {
 			$button.blur();
 			$button.classList.toggle('disabled', block);
 		});
 	}
 
 	function showSpin(show = true) {
-		$overlay.querySelector('.modal-spin').classList.toggle('visible', show);
+		_elements.overlay.querySelector('.modal-close').classList[show ? 'add' : 'remove']('hidden');
+		_elements.overlay.querySelector('.modal-spin').classList[show ? 'remove' : 'add']('hidden');
 	}
 
 	function destroy() {
 		if (_blocked) return;
 
-		$overlay.classList.remove('modal-visible');
-		$overlay.classList.add('modal-invisible');
+		_elements.overlay.classList.remove('modal-visible');
+		_elements.overlay.classList.add('modal-invisible');
 
 		if (modalOptions.onHide)
 			modalOptions.onHide(_context);
 
 		setTimeout(() => {
-			$overlay.remove();
+			_elements.overlay.remove();
 			window.removeEventListener('keydown', onKeyDown);
 		}, 200);
 	}
