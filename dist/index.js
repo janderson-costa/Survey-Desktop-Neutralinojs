@@ -1834,9 +1834,9 @@
 
   // src/lib/Modal/Modal.js
   var modalDefaultOptions = {
-    title: "Title",
+    title: null,
     // string,
-    content: "Content",
+    content: null,
     // string | Element,
     width: 360,
     // number
@@ -1910,7 +1910,11 @@
       _elements.title.querySelector(".modal-close").addEventListener("click", hide);
       if (modalOptions.width)
         _elements.modal.style.width = modalOptions.width + "px";
-      if (modalOptions.content instanceof Element)
+      if (!modalOptions.title)
+        _elements.title.classList.add("hidden");
+      if (!modalOptions.content)
+        _elements.content.classList.add("hidden");
+      else if (modalOptions.content instanceof Element)
         _elements.content.appendChild(modalOptions.content);
       else
         _elements.content.innerHTML = modalOptions.content;
@@ -2238,7 +2242,8 @@
   function addTableRowGroup() {
     const row = createSrvTableRow();
     row.isGroup = true;
-    ui_default.activeDataTable.addRow(row);
+    const tableRow = ui_default.activeDataTable.addRow(row, { belowRow: ui_default.activeDataTable.selectedRows()[0] });
+    tableRow.select();
     ui_default.footer_total = ui_default.footer_total["reload"]();
   }
   function moveSelectedRows(down = true) {
@@ -2247,7 +2252,7 @@
   function removeSelectedTableRows() {
     Modal({
       title: "Exluir item",
-      content: `O item selecionado ser\xE1 exclu\xEDdo de forma permanente.<br><br>Deseja continuar?`,
+      content: `Os itens selecionados ser\xE3o exclu\xEDdos de forma permanente.<br><br>Deseja continuar?`,
       buttons: [
         {
           name: "Excluir",

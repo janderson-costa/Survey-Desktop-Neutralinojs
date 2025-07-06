@@ -285,7 +285,10 @@ function addTableRowGroup() {
 	const row = createSrvTableRow();
 
 	row.isGroup = true;
-	ui.activeDataTable.addRow(row);
+
+	const tableRow = ui.activeDataTable.addRow(row, { belowRow: ui.activeDataTable.selectedRows()[0] });
+
+	tableRow.select();
 	ui.footer_total = ui.footer_total['reload']();
 }
 
@@ -296,7 +299,7 @@ function moveSelectedRows(down = true) {
 function removeSelectedTableRows() {
 	Modal({
 		title: 'Exluir item',
-		content: `O item selecionado será excluído de forma permanente.<br><br>Deseja continuar?`,
+		content: `Os itens selecionados serão excluídos de forma permanente.<br><br>Deseja continuar?`,
 		buttons: [
 			{
 				name: 'Excluir',

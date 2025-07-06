@@ -11,8 +11,8 @@ const buttonDefaultOptions = {
 	onClick: null,
 };
 const modalDefaultOptions = {
-	title: 'Title', // string,
-	content: 'Content', // string | Element,
+	title: null, // string,
+	content: null, // string | Element,
 	width: 360, // number
 	hideOut: true, // boolean - Fechar o modal ao clicar fora
 	buttons: [], // buttonDefaultOptions[]
@@ -88,9 +88,14 @@ export default function Modal(modalOptions) {
 		_elements.title.querySelector('.modal-close').addEventListener('click', hide);
 
 		if (modalOptions.width)
-		_elements.modal.style.width = modalOptions.width + 'px';
+			_elements.modal.style.width = modalOptions.width + 'px';
 
-		if (modalOptions.content instanceof Element)
+		if (!modalOptions.title)
+			_elements.title.classList.add('hidden');
+
+		if (!modalOptions.content)
+			_elements.content.classList.add('hidden');
+		else if (modalOptions.content instanceof Element)
 			_elements.content.appendChild(modalOptions.content);
 		else
 			_elements.content.innerHTML = modalOptions.content;
