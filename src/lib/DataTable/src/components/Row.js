@@ -3,6 +3,12 @@ import { CellOptions } from '../constants.js';
 import { Cell } from './Cell.js';
 
 export function Row(table, options) {
+	const defaultOptions = {
+		data: {},
+	};
+
+	options = { ...defaultOptions, ...options };
+
 	const _row = {
 		element: null,
 		id: utils.generateGuid(),
@@ -10,7 +16,7 @@ export function Row(table, options) {
 		isSelected: false,
 		isHidden: false,
 		isDisabled: false,
-		_data: options.data || {}, // interno
+		_data: options.data, // interno
 		data,
 		cell,
 		index,
@@ -58,13 +64,13 @@ export function Row(table, options) {
 
 	function _loadCells() {
 		if (table.options.checkbox) {
-			const options = new CellOptions();
+			const cellOptions = new CellOptions();
 
-			options.row = _row;
-			options.checkbox = true;
-			options.resize = false;
+			cellOptions.row = _row;
+			cellOptions.checkbox = true;
+			cellOptions.resize = false;
 
-			const cell = Cell(table, options);
+			const cell = Cell(table, cellOptions);
 
 			_row.cells.push(cell);
 			$row.appendChild(cell.element);
@@ -72,14 +78,14 @@ export function Row(table, options) {
 
 		for (const name in table.options.columns) {
 			const column = table.options.columns[name];
-			const options = utils.mergeProps(new CellOptions(), column);
+			const cellOptions = utils.mergeProps(new CellOptions(), column);
 
-			options.row = _row;
-			options.name = name;
-			options.data = _row._data;
-			options.value = _row._data[name];
+			cellOptions.row = _row;
+			cellOptions.name = name;
+			cellOptions.data = _row._data;
+			cellOptions.value = _row._data[name];
 
-			const cell = Cell(table, options);
+			const cell = Cell(table, cellOptions);
 
 			_row.cells.push(cell);
 			$row.appendChild(cell.element);

@@ -20,4 +20,10 @@
     .modal-content {
         user-select: text !important;
     }
+
+    .modal-buttons {
+        button {
+            padding-bottom: 1px !important;
+        }
+    }
 }

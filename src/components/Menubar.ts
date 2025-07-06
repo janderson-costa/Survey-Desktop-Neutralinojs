@@ -1,43 +1,44 @@
+import actions from '../shared/actions.js';
+import { appData } from '../shared/appData.js';
 import { html } from '../lib/html/html.js';
 import Menu from '../lib/Menu/Menu.js';
-import { appData } from '../shared/appData.js';
 
 const menubar = [
 	{
 		title: 'Arquivo', items: [
-			{ name: 'Novo' },
-			{ name: 'Abrir' },
-			{ name: 'Salvar' },
-			{ name: 'Salvar Como' },
+			{ name: 'Novo', onClick: () => actions.newFile() },
+			{ name: 'Abrir', onClick: () => actions.openFile() },
+			{ name: 'Salvar', onClick: () => actions.saveFile() },
+			{ name: 'Salvar Como', onClick: () => null },
 			{ divider: true },
-			{ name: 'Enviar por E-mail' },
+			{ name: 'Enviar por E-mail', onClick: () => null },
 			{ divider: true },
-			{ name: 'Abrir Local do Arquivo' },
+			{ name: 'Abrir Local do Arquivo', onClick: () => null },
 			{ divider: true },
-			{ name: 'Sair' },
+			{ name: 'Sair', onClick: () => actions.exit() },
 		]
 	},
 	{
 		title: 'Exibir', items: [
-			{ name: 'Informações do Arquivo', hidden: true },
+			{ name: 'Informações do Arquivo', onClick: () => actions.showFileInfo(), hidden: true },
 			{ divider: true, hidden: true },
-			{ name: 'Atualizar janela' },
+			{ name: 'Atualizar janela', onClick: () => actions.reload() },
 		]
 	},
 	{
 		title: 'Ferramentas', items: [
-			{ name: 'Carregar Dados nas Planilhas' },
-			{ name: 'Limpar Dados das Planilhas' },
+			{ name: 'Carregar Dados nas Planilhas', onClick: () => null },
+			{ name: 'Limpar Dados das Planilhas', onClick: () => null },
 			{ divider: true },
-			{ name: 'Enviar por E-mail' },
+			{ name: 'Enviar por E-mail', onClick: () => null },
 			{ divider: true },
-			{ name: 'Visualizar no Dispositivo Móvel' },
+			{ name: 'Visualizar no Dispositivo Móvel', onClick: () => null },
 		]
 	},
 	{
 		title: 'Ajuda', items: [
-			{ name: 'Ajuda' },
-			{ name: 'Sobre' },
+			{ name: 'Ajuda', onClick: () => null },
+			{ name: 'Sobre', onClick: () => null },
 		]
 	},
 ];

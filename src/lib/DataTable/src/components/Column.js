@@ -1,21 +1,21 @@
 import { utils } from '../utils.js';
 
-export function Column(table, options) {
-	// options: ColumnOptions
+export function Column(table, columnOptions) {
+	// columnOptions: ColumnOptions
 
 	const $cell = create();
 	const _cell = {
 		element: $cell,
-		isHidden: options.hidden,
-		isDisabled: options.disabled,
-		options,
+		isHidden: columnOptions.hidden,
+		isDisabled: columnOptions.disabled,
+		options: columnOptions,
 		show,
 		checked,
 		disable,
 	};
 
-	show(!options.hidden);
-	disable(options.disabled);
+	show(!columnOptions.hidden);
+	disable(columnOptions.disabled);
 
 	return _cell;
 
@@ -24,7 +24,7 @@ export function Column(table, options) {
 
 		$cell.classList.add('dt-header-cell');
 
-		if (options.checkbox) {
+		if (columnOptions.checkbox) {
 			$cell.classList.add('checkbox');
 			$cell.insertAdjacentHTML('afterbegin', /*html*/`
 				<label class="dt-row-checkbox">
@@ -40,10 +40,10 @@ export function Column(table, options) {
 					table.unselectRows(event);
 			});
 		} else {
-			$cell.dataset.name = options.name;
+			$cell.dataset.name = columnOptions.name;
 			$cell.insertAdjacentHTML('afterbegin', /*html*/`
-				<label class="name" title="${options.title || ''}">
-					${options.displayName}
+				<label class="name" title="${columnOptions.title || ''}">
+					${columnOptions.displayName}
 				</label>
 				<span class="controls">
 					<i class="sort asc" title="Sort"></i>
@@ -53,7 +53,7 @@ export function Column(table, options) {
 
 			const $iconSort = $cell.querySelector('.sort');
 
-			if (table.options.sort && options.sort != false) {
+			if (table.options.sort && columnOptions.sort != false) {
 				$cell.classList.add('sortable');
 
 				$cell.addEventListener('click', () => {
@@ -71,17 +71,17 @@ export function Column(table, options) {
 					$iconSort.classList.toggle('desc', !ascendent);
 					$iconSort.setAttribute('ascendent', ascendent);
 
-					table.sort(options.name, ascendent);
+					table.sort(columnOptions.name, ascendent);
 				});
 			}
 
 			if (table.options.resize) {
-				if (options.resize != false)
+				if (columnOptions.resize != false)
 					$cell.classList.add('resizable');
 			}
 
-			if (options.style)
-				utils.setElementStyle($cell, options.style);
+			if (columnOptions.style)
+				utils.setElementStyle($cell, columnOptions.style);
 		}
 
 		if (table.options.borders.cells)
@@ -99,7 +99,7 @@ export function Column(table, options) {
 
 	function show(show = true) {
 		_cell.isHidden = !show;
-		options.hidden = _cell.isHidden;
+		columnOptions.hidden = _cell.isHidden;
 
 		$cell.classList.toggle('visible', show);
 		$cell.classList.toggle('hidden', !show);

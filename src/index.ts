@@ -20,11 +20,6 @@ actions.newFile = newFile;
 actions.openFile = openFile;
 actions.saveFile = saveFile;
 actions.showFileInfo = showFileInfo;
-actions.closeWorkbook = srvService.closeWorkbook;
-actions.addTableRow = dataTableService.addTableRow;
-actions.addTableRowGroup = dataTableService.addTableRowGroup;
-actions.moveSelectedRows = dataTableService.moveSelectedRows;
-actions.removeSelectedTableRows = dataTableService.removeSelectedTableRows;
 
 neutralinoService.setWindowTitle();
 neutralinoService.setOnWindowClose();
@@ -212,19 +207,19 @@ async function saveFile(confirm = false) {
 							const result = await save();
 
 							resolve(result);
-						}
+						},
 					},
 					{
 						name: 'Não salvar', onClick: modal => {
 							modal.hide();
 							resolve(false);
-						}
+						},
 					},
 					{
 						name: 'Cancelar', onClick: modal => {
 							modal.hide();
 							resolve('canceled');
-						}
+						},
 					},
 				],
 				onShow: modal => {
@@ -265,7 +260,12 @@ async function saveFile(confirm = false) {
 			Modal({
 				title: 'Survey',
 				content: `Falha ao salvar ${appData.srvFileName}<br>${result.error.replaceAll('\n', '<br>')}`,
-				buttons: [{ name: 'OK', onClick: modal => modal.hide() }],
+				buttons: [
+					{
+						name: 'OK',
+						onClick: modal => modal.hide(),
+					}
+				],
 			}).show();
 
 			return 'error';
@@ -284,7 +284,11 @@ function showFileInfo() {
 		width: 360,
 		hideOut: true,
 		buttons: [
-			{ name: 'OK', primary: true, onClick: () => modal.hide() },
+			{
+				name: 'OK',
+				primary: true,
+				onClick: () => modal.hide(),
+			},
 		],
 	});
 

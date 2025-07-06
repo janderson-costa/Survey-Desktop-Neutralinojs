@@ -3,10 +3,10 @@ import { Header } from './Header.js';
 import { Row } from './Row.js';
 import { Footer } from './Footer.js';
 
-export function Table(options) {
+export function Table(tableOptions) {
 	const _table = {
-		options,
-		id: options.id || utils.generateGuid(),
+		options: tableOptions,
+		id: tableOptions.id || utils.generateGuid(),
 		element: null,
 		elements: {
 			scrollable: null,
@@ -20,7 +20,7 @@ export function Table(options) {
 		_lastRowSelected: null,
 		footer: null,
 		isDisabled: false,
-		_data: options.data || [],
+		_data: tableOptions.data || [],
 		data,
 		append,
 		load,
@@ -49,10 +49,10 @@ export function Table(options) {
 	createHeader();
 	createBody();
 	createFooter();
-	width(options.width);
-	height(options.height);
-	disable(options.disabled);
-	load(options.data);
+	width(tableOptions.width);
+	height(tableOptions.height);
+	disable(tableOptions.disabled);
+	load(tableOptions.data);
 
 	return _table;
 
@@ -73,33 +73,33 @@ export function Table(options) {
 			if (atBottom && !element.alreadyAtBottom) {
 				element.alreadyAtBottom = true;
 
-				if (options.onScrollEnd)
-					options.onScrollEnd({ event, end: true });
+				if (tableOptions.onScrollEnd)
+					tableOptions.onScrollEnd({ event, end: true });
 			} else if (!atBottom) {
 				// Se o usuário rolar para cima
 				element.alreadyAtBottom = false;
 			}
 		});
 
-		if (options.borders.table.all) {
+		if (tableOptions.borders.table.all) {
 			$table.classList.add('table-border-all');
 
-			if (options.borders.table.radius != null) {
-				let radius = options.borders.table.radius;
+			if (tableOptions.borders.table.radius != null) {
+				let radius = tableOptions.borders.table.radius;
 
 				$table.style.borderRadius = utils.parseDimension(radius);
 				$scrollable.style.borderRadius = utils.parseDimension(radius);
 			}
 		} else {
-			if (options.borders.table.top)
+			if (tableOptions.borders.table.top)
 				$table.classList.add('table-border-top');
 
-			if (options.borders.table.bottom)
+			if (tableOptions.borders.table.bottom)
 				$table.classList.add('table-border-bottom');
 		}
 
-		if (options.style)
-			utils.setElementStyle($table, options.style);
+		if (tableOptions.style)
+			utils.setElementStyle($table, tableOptions.style);
 
 		_table.element = $table;
 		_table.elements.scrollable = $scrollable;
@@ -113,8 +113,8 @@ export function Table(options) {
 		_table.header = header;
 
 		$table.querySelector('.scrollable').appendChild(header.element);
-		header.show(!options.header.hidden);
-		header.disable(options.header.disabled);
+		header.show(!tableOptions.header.hidden);
+		header.disable(tableOptions.header.disabled);
 	}
 
 	function createBody() {
@@ -127,7 +127,7 @@ export function Table(options) {
 	}
 
 	function createFooter() {
-		if (options.footer) {
+		if (tableOptions.footer) {
 			const footer = Footer(_table);
 
 			_table.footer = footer;
@@ -155,14 +155,14 @@ export function Table(options) {
 	}
 
 	function width(width) {
-		if (width == undefined)
+		if (typeof width == 'undefined')
 			return $table.clientWidth;
 
 		$table.style.width = utils.parseDimension(width) || 'auto';
 	}
 
 	function height(height) {
-		if (height == undefined)
+		if (typeof height == 'undefined')
 			return $table.clientHeight;
 
 		$table.style.height = utils.parseDimension(height) || 'auto';
@@ -174,7 +174,7 @@ export function Table(options) {
 		// Adiciona campos conforme options.columns caso não existam
 		// Previne erros caso sejam adicionadas novas colunas (campos) que não existem em data
 		if (data.length) {
-			for (const columnName in options.columns) {
+			for (const columnName in tableOptions.columns) {
 				data.forEach(item => {
 					if (!item.hasOwnProperty(columnName))
 						item[columnName] = '';
@@ -195,7 +195,7 @@ export function Table(options) {
 		clear(!!_data);
 
 		data(_data, true).forEach(item =>
-			addRow(item, false, false)
+			addRow(item, { insertData: false, setBorders: false })
 		);
 
 		_setColumnWidths();
@@ -210,7 +210,7 @@ export function Table(options) {
 		data([..._table._data, ..._data], true);
 
 		_data.forEach(item =>
-			addRow(item, false, false)
+			addRow(item, { insertData: false, setBorders: false })
 		);
 
 		_setBorders();
@@ -229,11 +229,17 @@ export function Table(options) {
 		_table.header.cells[0].checked(false);
 	}
 
-	function addRow(data, insert = true, setBorders = true) {
-		const row = Row(_table, { data });
+	function addRow(data, options) {
+		const defaultOptions = {
+			insertData: true,
+			belowRow: null,
+			setBorders: true,
+		};
 
-		_table.rows.push(row);
-		_table.body.element.appendChild(row.element);
+		options = { ...defaultOptions, ...options };
+
+		const row = Row(_table, { data });
+		let index;
 
 		data.meta = {
 			row: {
@@ -241,14 +247,33 @@ export function Table(options) {
 			},
 		};
 
-		if (insert)
-			_table._data.push(data);
+		if (options.belowRow) {
+			// Adiciona abaixo da linha especificada
+			index = _table.rows.indexOf(options.belowRow);
 
-		if (setBorders)
+			_table.rows.splice(index + 1, 0, row);
+			_table.body.element.insertBefore(row.element, options.belowRow.element.nextSibling);
+		} else {
+			// Adiciona no final
+			_table.rows.push(row);
+			_table.body.element.appendChild(row.element);
+		}
+
+		if (options.insertData) {
+			if (options.belowRow) {
+				// Adiciona abaixo da linha especificada
+				_table._data.splice(index + 1, 0, data);
+			} else {
+				// Adiciona no final
+				_table._data.push(data);
+			}
+		}
+
+		if (options.setBorders)
 			_setBorders();
 
-		if (options.onAddRow)
-			options.onAddRow({ row });
+		if (tableOptions.onAddRow)
+			tableOptions.onAddRow({ row });
 
 		return row;
 	}
@@ -258,7 +283,7 @@ export function Table(options) {
 	}
 
 	function rowsByFieldValue(fieldName, value) {
-		if (fieldName == undefined || value == undefined)
+		if (typeof fieldName == 'undefined' || typeof value == 'undefined')
 			return;
 
 		return _table.rows.filter(row =>
@@ -288,18 +313,18 @@ export function Table(options) {
 
 			row.isSelected = selected;
 
-			if (options.checkbox) {
+			if (tableOptions.checkbox) {
 				row.cells[0].checked(selected);
 			} else {
 				row.element.classList.toggle('selected', selected);
 			}
 		});
 
-		if (options.checkbox)
+		if (tableOptions.checkbox)
 			_table.header.cells[0].checked();
 
-		if (options.onSelectRows)
-			options.onSelectRows({ rows: selectedRows() });
+		if (tableOptions.onSelectRows)
+			tableOptions.onSelectRows({ rows: selectedRows() });
 	}
 
 	function unselectRows(event, callback = true) {
@@ -313,12 +338,12 @@ export function Table(options) {
 			row.cells[0].checked(false);
 		});
 
-		if (options.onUnselectRows && callback)
-			options.onUnselectRows({ event });
+		if (tableOptions.onUnselectRows && callback)
+			tableOptions.onUnselectRows({ event });
 	}
 
 	function moveSelectedRows(down = true) {
-		if (options.sort) return;
+		if (tableOptions.sort) return;
 
 		if (down) {
 			for (let i = _table.rows.length - 1; i >= 0; i--) {
@@ -349,11 +374,16 @@ export function Table(options) {
 		_table.rows.forEach(row => _table.body.element.appendChild(row.element));
 
 		function changePosition(fromIndex, toIndex) {
+			// Linha
 			const row = _table.rows.splice(fromIndex, 1)[0];
-			const item = _table._data.splice(fromIndex, 1)[0];
 
 			_table.rows.splice(toIndex, 0, row);
-			_table._data.splice(toIndex, 0, item);
+
+			// Dados
+			const temp = _table._data[toIndex];
+
+			_table._data[toIndex] = _table._data[fromIndex];
+			_table._data[fromIndex] = temp;
 		}
 	}
 
@@ -379,8 +409,8 @@ export function Table(options) {
 			row.element.remove();
 		});
 
-		if (options.onRemoveRows)
-			options.onRemoveRows();
+		if (tableOptions.onRemoveRows)
+			tableOptions.onRemoveRows();
 	}
 
 	function removeSelectedRows() {
@@ -439,11 +469,11 @@ export function Table(options) {
 		if (!widths) {
 			widths = [];
 
-			if (options.checkbox)
+			if (tableOptions.checkbox)
 				widths.push('34px');
 
-			for (let name in options.columns) {
-				let column = options.columns[name];
+			for (let name in tableOptions.columns) {
+				let column = tableOptions.columns[name];
 
 				if (column.hidden)
 					continue;
@@ -503,7 +533,7 @@ export function Table(options) {
 
 			currentColumn = _table.header.cell($column.dataset.name);
 
-			if (!options.resize && !currentColumn.options.resize)
+			if (!tableOptions.resize && !currentColumn.options.resize)
 				return;
 
 			$header.classList.add('resizing');
@@ -549,8 +579,8 @@ export function Table(options) {
 			document.body.style.cursor = '';
 			document.body.style.userSelect = '';
 
-			if (diff && options.onResizeColumn) {
-				options.onResizeColumn({ column: currentColumn, widths: _table._columnWidths });
+			if (diff && tableOptions.onResizeColumn) {
+				tableOptions.onResizeColumn({ column: currentColumn, widths: _table._columnWidths });
 				diff = 0;
 			}
 		}
@@ -570,7 +600,7 @@ export function Table(options) {
 		});
 
 		// footer
-		let radius = options.footer.hidden ? 'inherit' : '0px';
+		let radius = tableOptions.footer.hidden ? 'inherit' : '0px';
 
 		_table.elements.scrollable.style.borderBottomLeftRadius = radius;
 		_table.elements.scrollable.style.borderbottomRightRadius = radius;

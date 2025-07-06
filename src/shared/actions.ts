@@ -8,6 +8,8 @@ const actions = {
 	addTableRowGroup: null,
 	moveSelectedRows: null,
 	removeSelectedTableRows: null,
+	reload: null,
+	exit: null,
 };
 
 export default actions;

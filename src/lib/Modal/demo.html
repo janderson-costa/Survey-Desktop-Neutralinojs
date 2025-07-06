@@ -21,12 +21,21 @@
 		content: 'Content of modal',
 		width: 360,
 		hideOut: true,
+		style: { border: '1px solid red' },
 		buttons: [
-			{ name: 'OK', primary: true, focused: true, onClick: modal => {
-				console.log('OK!!', modal);
-				modal.hide();
-			}},
-			{ name: 'Cancel', onClick: modal => modal.hide() }
+			{
+				name: 'OK',
+				primary: true,
+				focused: true,
+				onClick: modal => {
+					console.log('OK!!', modal);
+					modal.hide();
+				},
+			},
+			{
+				name: 'Cancel',
+				onClick: modal => modal.hide(),
+			}
 		],
 		onHide: modal => {
 			console.log('onHide', modal);

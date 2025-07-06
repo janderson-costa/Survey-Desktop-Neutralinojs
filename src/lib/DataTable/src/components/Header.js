@@ -22,12 +22,12 @@ export function Header(table) {
 		$header.classList.add('dt-header');
 
 		if (table.options.checkbox) {
-			const options = new ColumnOptions();
+			const columnOptions = new ColumnOptions();
 
-			options.checkbox = true;
-			options.resize = false;
+			columnOptions.checkbox = true;
+			columnOptions.resize = false;
 
-			const cell = Column(table, options);
+			const cell = Column(table, columnOptions);
 
 			_header.cells.push(cell);
 			$header.appendChild(cell.element);
@@ -35,11 +35,11 @@ export function Header(table) {
 
 		for (const name in table.options.columns) {
 			const column = table.options.columns[name];
-			const options = utils.mergeProps(new ColumnOptions(), column);
+			const columnOptions = utils.mergeProps(new ColumnOptions(), column);
 
-			options.name = name;
+			columnOptions.name = name;
 
-			const cell = Column(table, options);
+			const cell = Column(table, columnOptions);
 
 			_header.cells.push(cell);
 			$header.appendChild(cell.element);

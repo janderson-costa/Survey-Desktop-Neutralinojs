@@ -31,12 +31,12 @@ function create() {
 		{ title: 'Salvar', icon: Icon('save'), onClick: () => actions.saveFile() },
 		{ title: 'Informações do arquivo', icon: Icon('info'), hidden: !appData.srvConfig.info.createdAt, onClick: () => actions.showFileInfo() },
 		{ divider: true, hidden: false },
-		{ title: 'Carregar dados nas planilhas', icon: Icon('load'), onClick: () => console.log('onClick') },
-		{ title: 'Limpar dados das planilhas', icon: Icon('clear'), onClick: () => console.log('onClick') },
-		{ title: 'Enviar por E-mail', icon: Icon('send'), onClick: () => console.log('onClick') },
+		{ title: 'Carregar dados nas planilhas', icon: Icon('load'), onClick: () => null },
+		{ title: 'Limpar dados das planilhas', icon: Icon('clear'), onClick: () => null },
+		{ title: 'Enviar por E-mail', icon: Icon('send'), onClick: () => null },
 	];
 	const toolbar_actions_right_buttons = [
-		{ title: 'Visualizar no dispositivo móvel', icon: Icon('smartphone'), onClick: () => console.log('onClick') }
+		{ title: 'Visualizar no dispositivo móvel', icon: Icon('smartphone'), onClick: () => null }
 	];
 	const toolbar_table_buttons = [
 		{ divider: true, hidden: false },
@@ -45,6 +45,9 @@ function create() {
 		{ title: 'Mover item selecionado para cima', icon: Icon('arrowUp'), onClick: () => actions.moveSelectedRows(false) },
 		{ title: 'Mover item selecionado para baixo', icon: Icon('arrowDown'), onClick: () => actions.moveSelectedRows(true) },
 		{ title: 'Excluir item selecionado', icon: Icon('close'), onClick: () => actions.removeSelectedTableRows() },
+		{ divider: true, hidden: false },
+		{ title: 'Carregar dados nesta planilha', icon: Icon('load'), onClick: () => null },
+		{ title: 'Limpar dados desta planilha', icon: Icon('clear'), onClick: () => null },
 	];
 
 

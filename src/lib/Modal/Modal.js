@@ -7,6 +7,7 @@ const buttonDefaultOptions = {
 	name: 'OK',
 	primary: true,
 	focused: false,
+	style: null, // CSSStyleDeclaration
 	onClick: null,
 };
 const modalDefaultOptions = {
@@ -15,6 +16,7 @@ const modalDefaultOptions = {
 	width: 360, // number
 	hideOut: true, // boolean - Fechar o modal ao clicar fora
 	buttons: [], // buttonDefaultOptions[]
+	style: null, // CSSStyleDeclaration
 	onHide: null, // function (opcional)
 	onShow: null, // function (opcional)
 };
@@ -93,6 +95,10 @@ export default function Modal(modalOptions) {
 		else
 			_elements.content.innerHTML = modalOptions.content;
 
+		if (modalOptions.style) {
+			Object.assign(_elements.modal.style, modalOptions.style);
+		}
+
 		// Botões
 		modalOptions.buttons = modalOptions.buttons || [];
 
@@ -100,13 +106,18 @@ export default function Modal(modalOptions) {
 			const $button = document.createElement('button');
 
 			$button.type = 'button';
-			$button.innerHTML = button.name;
+			$button.innerHTML = /*html*/`<span>${button.name}</span>`;
 			$button.classList.toggle('primary', !!button.primary);
 
 			button.element = $button;
 
-			if (button.onClick)
+			if (button.style) {
+				Object.assign($button.style, button.style);
+			}
+
+			if (button.onClick) {
 				$button.addEventListener('click', () => button.onClick(_context));
+			}
 
 			_elements.buttons.appendChild($button);
 		});

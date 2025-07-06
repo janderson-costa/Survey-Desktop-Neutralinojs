@@ -1,4 +1,5 @@
 import ui from '../shared/ui.js';
+import actions from '../shared/actions.js';
 import utils from '../lib/Utils/Utils.js';
 import { html } from '../lib/html/html.js';
 import { DataTable } from '../lib/DataTable/src/index.js';
@@ -41,6 +42,11 @@ const dataTableService = DataTableService();
 export { dataTableService };
 
 function DataTableService() {
+	actions.addTableRow = addTableRow;
+	actions.addTableRowGroup = addTableRowGroup;
+	actions.moveSelectedRows = moveSelectedRows;
+	actions.removeSelectedTableRows = removeSelectedTableRows;
+
 	return {
 		createTable,
 		removeTable,
@@ -269,8 +275,9 @@ function removeTable(srvTableId: string) {
 
 function addTableRow() {
 	const row = createSrvTableRow();
+	const tableRow = ui.activeDataTable.addRow(row, { belowRow: ui.activeDataTable.selectedRows()[0] });
 
-	ui.activeDataTable.addRow(row);
+	tableRow.select();
 	ui.footer_total = ui.footer_total['reload']();
 }
 
@@ -292,18 +299,21 @@ function removeSelectedTableRows() {
 		content: `O item selecionado será excluído de forma permanente.<br><br>Deseja continuar?`,
 		buttons: [
 			{
-				name: 'Excluir', primary: true, onClick: async modal => {
+				name: 'Excluir',
+				primary: true,
+				focused: true,
+				onClick: async modal => {
 					ui.activeDataTable.removeSelectedRows();
 					ui.footer_total = ui.footer_total['reload']();
+					ui.tables_buttons = ui.tables_buttons['reload']();
+					renderIcons();
 					modal.hide();
-				}
+				},
 			},
 			{
-				name: 'Cancelar', onClick: modal => modal.hide()
+				name: 'Cancelar',
+				onClick: modal => modal.hide(),
 			},
 		],
-		onShow: modal => {
-			modal.options.buttons[0].element.focus();
-		}
 	}).show();
 }

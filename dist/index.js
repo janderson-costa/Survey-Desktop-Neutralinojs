@@ -9,7 +9,9 @@
     addTableRow: null,
     addTableRowGroup: null,
     moveSelectedRows: null,
-    removeSelectedTableRows: null
+    removeSelectedTableRows: null,
+    reload: null,
+    exit: null
   };
   var actions_default = actions;
 
@@ -46,7 +48,7 @@
     let _component = createComponent();
     let _xPath;
     return _component;
-    function reload() {
+    function reload2() {
       const newComponent = createComponent();
       _component.replaceWith(newComponent);
       _component = newComponent;
@@ -116,7 +118,7 @@
             const _attrName = attrName.substring(3);
             element2.addEventListener(_attrName, (event) => {
               _xPath = _getXPath(event.target);
-              expression({ event, element: element2, reload });
+              expression({ event, element: element2, reload: reload2 });
             });
             element2.removeAttribute(attrName);
           }
@@ -130,7 +132,7 @@
     }
     function setPublicProperties(element) {
       if (!element.reload)
-        element.reload = reload;
+        element.reload = reload2;
     }
     function focus() {
       const element = _getElementByXPath(_xPath);
@@ -394,42 +396,42 @@
     {
       title: "Arquivo",
       items: [
-        { name: "Novo" },
-        { name: "Abrir" },
-        { name: "Salvar" },
-        { name: "Salvar Como" },
+        { name: "Novo", onClick: () => actions_default.newFile() },
+        { name: "Abrir", onClick: () => actions_default.openFile() },
+        { name: "Salvar", onClick: () => actions_default.saveFile() },
+        { name: "Salvar Como", onClick: () => null },
         { divider: true },
-        { name: "Enviar por E-mail" },
+        { name: "Enviar por E-mail", onClick: () => null },
         { divider: true },
-        { name: "Abrir Local do Arquivo" },
+        { name: "Abrir Local do Arquivo", onClick: () => null },
         { divider: true },
-        { name: "Sair" }
+        { name: "Sair", onClick: () => actions_default.exit() }
       ]
     },
     {
       title: "Exibir",
       items: [
-        { name: "Informa\xE7\xF5es do Arquivo", hidden: true },
+        { name: "Informa\xE7\xF5es do Arquivo", onClick: () => actions_default.showFileInfo(), hidden: true },
         { divider: true, hidden: true },
-        { name: "Atualizar janela" }
+        { name: "Atualizar janela", onClick: () => actions_default.reload() }
       ]
     },
     {
       title: "Ferramentas",
       items: [
-        { name: "Carregar Dados nas Planilhas" },
-        { name: "Limpar Dados das Planilhas" },
+        { name: "Carregar Dados nas Planilhas", onClick: () => null },
+        { name: "Limpar Dados das Planilhas", onClick: () => null },
         { divider: true },
-        { name: "Enviar por E-mail" },
+        { name: "Enviar por E-mail", onClick: () => null },
         { divider: true },
-        { name: "Visualizar no Dispositivo M\xF3vel" }
+        { name: "Visualizar no Dispositivo M\xF3vel", onClick: () => null }
       ]
     },
     {
       title: "Ajuda",
       items: [
-        { name: "Ajuda" },
-        { name: "Sobre" }
+        { name: "Ajuda", onClick: () => null },
+        { name: "Sobre", onClick: () => null }
       ]
     }
   ];
@@ -820,24 +822,24 @@
   };
 
   // src/lib/DataTable/src/components/Column.js
-  function Column(table, options) {
+  function Column(table, columnOptions) {
     const $cell = create2();
     const _cell = {
       element: $cell,
-      isHidden: options.hidden,
-      isDisabled: options.disabled,
-      options,
+      isHidden: columnOptions.hidden,
+      isDisabled: columnOptions.disabled,
+      options: columnOptions,
       show,
       checked,
       disable
     };
-    show(!options.hidden);
-    disable(options.disabled);
+    show(!columnOptions.hidden);
+    disable(columnOptions.disabled);
     return _cell;
     function create2() {
       const $cell2 = document.createElement("div");
       $cell2.classList.add("dt-header-cell");
-      if (options.checkbox) {
+      if (columnOptions.checkbox) {
         $cell2.classList.add("checkbox");
         $cell2.insertAdjacentHTML(
           "afterbegin",
@@ -853,13 +855,13 @@
           event.target.checked ? table.selectRows() : table.unselectRows(event);
         });
       } else {
-        $cell2.dataset.name = options.name;
+        $cell2.dataset.name = columnOptions.name;
         $cell2.insertAdjacentHTML(
           "afterbegin",
           /*html*/
           `
-				<label class="name" title="${options.title || ""}">
-					${options.displayName}
+				<label class="name" title="${columnOptions.title || ""}">
+					${columnOptions.displayName}
 				</label>
 				<span class="controls">
 					<i class="sort asc" title="Sort"></i>
@@ -868,7 +870,7 @@
 			`
         );
         const $iconSort = $cell2.querySelector(".sort");
-        if (table.options.sort && options.sort != false) {
+        if (table.options.sort && columnOptions.sort != false) {
           $cell2.classList.add("sortable");
           $cell2.addEventListener("click", () => {
             if (table.header.isDisabled || _cell.isDisabled)
@@ -881,15 +883,15 @@
             $iconSort.classList.toggle("asc", ascendent);
             $iconSort.classList.toggle("desc", !ascendent);
             $iconSort.setAttribute("ascendent", ascendent);
-            table.sort(options.name, ascendent);
+            table.sort(columnOptions.name, ascendent);
           });
         }
         if (table.options.resize) {
-          if (options.resize != false)
+          if (columnOptions.resize != false)
             $cell2.classList.add("resizable");
         }
-        if (options.style)
-          utils2.setElementStyle($cell2, options.style);
+        if (columnOptions.style)
+          utils2.setElementStyle($cell2, columnOptions.style);
       }
       if (table.options.borders.cells)
         $cell2.classList.add("cell-border-right");
@@ -902,7 +904,7 @@
     }
     function show(show2 = true) {
       _cell.isHidden = !show2;
-      options.hidden = _cell.isHidden;
+      columnOptions.hidden = _cell.isHidden;
       $cell.classList.toggle("visible", show2);
       $cell.classList.toggle("hidden", !show2);
       table._setBorders();
@@ -933,18 +935,18 @@
       const $header2 = document.createElement("div");
       $header2.classList.add("dt-header");
       if (table.options.checkbox) {
-        const options = new ColumnOptions();
-        options.checkbox = true;
-        options.resize = false;
-        const cell2 = Column(table, options);
+        const columnOptions = new ColumnOptions();
+        columnOptions.checkbox = true;
+        columnOptions.resize = false;
+        const cell2 = Column(table, columnOptions);
         _header.cells.push(cell2);
         $header2.appendChild(cell2.element);
       }
       for (const name in table.options.columns) {
         const column = table.options.columns[name];
-        const options = utils2.mergeProps(new ColumnOptions(), column);
-        options.name = name;
-        const cell2 = Column(table, options);
+        const columnOptions = utils2.mergeProps(new ColumnOptions(), column);
+        columnOptions.name = name;
+        const cell2 = Column(table, columnOptions);
         _header.cells.push(cell2);
         $header2.appendChild(cell2.element);
       }
@@ -968,13 +970,13 @@
   }
 
   // src/lib/DataTable/src/components/Cell.js
-  function Cell(table, options) {
+  function Cell(table, cellOptions) {
     const $cell = create2();
     const _cell = {
       element: $cell,
-      isHidden: options.hidden,
-      isDisabled: options.disabled,
-      options,
+      isHidden: cellOptions.hidden,
+      isDisabled: cellOptions.disabled,
+      options: cellOptions,
       value,
       display,
       checked,
@@ -982,14 +984,14 @@
       showContent,
       disable
     };
-    show(!options.hidden);
-    showContent(!options.hidden);
+    show(!cellOptions.hidden);
+    showContent(!cellOptions.hidden);
     display(value());
     return _cell;
     function create2() {
       const $cell2 = document.createElement("div");
       $cell2.classList.add("dt-body-row-cell");
-      if (options.checkbox) {
+      if (cellOptions.checkbox) {
         $cell2.classList.add("checkbox");
         $cell2.insertAdjacentHTML(
           "afterbegin",
@@ -1004,12 +1006,12 @@
         $checkbox.addEventListener("click", (event) => event.stopPropagation());
         $checkbox.addEventListener("change", (event) => {
           table.header.cells[0].checked(false);
-          options.row.select(event.target.checked, event);
+          cellOptions.row.select(event.target.checked, event);
         });
       } else {
-        const value2 = options.value != void 0 ? options.value : "";
-        const cell = table.options.cells ? table.options.cells[options.name] || {} : {};
-        $cell2.dataset.name = options.name;
+        const value2 = typeof cellOptions.value != "undefined" ? cellOptions.value : "";
+        const cell = table.options.cells ? table.options.cells[cellOptions.name] || {} : {};
+        $cell2.dataset.name = cellOptions.name;
         $cell2.insertAdjacentHTML(
           "afterbegin",
           /*html*/
@@ -1031,23 +1033,23 @@
       const $value = $cell.querySelector(".value-hidden");
       if (!$value)
         return;
-      if (value2 != void 0) {
-        options.data[options.name] = value2;
+      if (typeof value2 != "undefined") {
+        cellOptions.data[cellOptions.name] = value2;
         $value.textContent = value2;
         if (_display)
           display(value2);
       } else {
-        value2 = options.value != void 0 ? options.value : $value.textContent;
+        value2 = typeof cellOptions.value != "undefined" ? cellOptions.value : $value.textContent;
         return value2;
       }
     }
     function display(value2) {
       const $display = $cell.querySelector(".value-display");
-      const cell = table.options.cells ? table.options.cells[options.name] || {} : {};
+      const cell = table.options.cells ? table.options.cells[cellOptions.name] || {} : {};
       if (cell.display) {
         const result = cell.display({
-          row: options.row,
-          item: options.data,
+          row: cellOptions.row,
+          item: cellOptions.data,
           value: value2
         });
         $display.innerHTML = "";
@@ -1089,6 +1091,10 @@
 
   // src/lib/DataTable/src/components/Row.js
   function Row(table, options) {
+    const defaultOptions2 = {
+      data: {}
+    };
+    options = { ...defaultOptions2, ...options };
     const _row = {
       element: null,
       id: utils2.generateGuid(),
@@ -1096,7 +1102,7 @@
       isSelected: false,
       isHidden: false,
       isDisabled: false,
-      _data: options.data || {},
+      _data: options.data,
       // interno
       data,
       cell,
@@ -1133,22 +1139,22 @@
     }
     function _loadCells() {
       if (table.options.checkbox) {
-        const options2 = new CellOptions();
-        options2.row = _row;
-        options2.checkbox = true;
-        options2.resize = false;
-        const cell2 = Cell(table, options2);
+        const cellOptions = new CellOptions();
+        cellOptions.row = _row;
+        cellOptions.checkbox = true;
+        cellOptions.resize = false;
+        const cell2 = Cell(table, cellOptions);
         _row.cells.push(cell2);
         $row.appendChild(cell2.element);
       }
       for (const name in table.options.columns) {
         const column = table.options.columns[name];
-        const options2 = utils2.mergeProps(new CellOptions(), column);
-        options2.row = _row;
-        options2.name = name;
-        options2.data = _row._data;
-        options2.value = _row._data[name];
-        const cell2 = Cell(table, options2);
+        const cellOptions = utils2.mergeProps(new CellOptions(), column);
+        cellOptions.row = _row;
+        cellOptions.name = name;
+        cellOptions.data = _row._data;
+        cellOptions.value = _row._data[name];
+        const cell2 = Cell(table, cellOptions);
         _row.cells.push(cell2);
         $row.appendChild(cell2.element);
       }
@@ -1262,10 +1268,10 @@
   }
 
   // src/lib/DataTable/src/components/Table.js
-  function Table(options) {
+  function Table(tableOptions) {
     const _table = {
-      options,
-      id: options.id || utils2.generateGuid(),
+      options: tableOptions,
+      id: tableOptions.id || utils2.generateGuid(),
       element: null,
       elements: {
         scrollable: null
@@ -1279,11 +1285,11 @@
       _lastRowSelected: null,
       footer: null,
       isDisabled: false,
-      _data: options.data || [],
+      _data: tableOptions.data || [],
       data,
       append,
       load,
-      reload,
+      reload: reload2,
       width,
       height,
       column,
@@ -1307,10 +1313,10 @@
     createHeader();
     createBody();
     createFooter();
-    width(options.width);
-    height(options.height);
-    disable(options.disabled);
-    load(options.data);
+    width(tableOptions.width);
+    height(tableOptions.height);
+    disable(tableOptions.disabled);
+    load(tableOptions.data);
     return _table;
     function create2() {
       const $table2 = document.createElement("div");
@@ -1324,27 +1330,27 @@
         let atBottom = Math.ceil(element.scrollTop + element.clientHeight) >= element.scrollHeight - 1;
         if (atBottom && !element.alreadyAtBottom) {
           element.alreadyAtBottom = true;
-          if (options.onScrollEnd)
-            options.onScrollEnd({ event, end: true });
+          if (tableOptions.onScrollEnd)
+            tableOptions.onScrollEnd({ event, end: true });
         } else if (!atBottom) {
           element.alreadyAtBottom = false;
         }
       });
-      if (options.borders.table.all) {
+      if (tableOptions.borders.table.all) {
         $table2.classList.add("table-border-all");
-        if (options.borders.table.radius != null) {
-          let radius = options.borders.table.radius;
+        if (tableOptions.borders.table.radius != null) {
+          let radius = tableOptions.borders.table.radius;
           $table2.style.borderRadius = utils2.parseDimension(radius);
           $scrollable.style.borderRadius = utils2.parseDimension(radius);
         }
       } else {
-        if (options.borders.table.top)
+        if (tableOptions.borders.table.top)
           $table2.classList.add("table-border-top");
-        if (options.borders.table.bottom)
+        if (tableOptions.borders.table.bottom)
           $table2.classList.add("table-border-bottom");
       }
-      if (options.style)
-        utils2.setElementStyle($table2, options.style);
+      if (tableOptions.style)
+        utils2.setElementStyle($table2, tableOptions.style);
       _table.element = $table2;
       _table.elements.scrollable = $scrollable;
       return $table2;
@@ -1353,8 +1359,8 @@
       const header = Header(_table);
       _table.header = header;
       $table.querySelector(".scrollable").appendChild(header.element);
-      header.show(!options.header.hidden);
-      header.disable(options.header.disabled);
+      header.show(!tableOptions.header.hidden);
+      header.disable(tableOptions.header.disabled);
     }
     function createBody() {
       const $body = document.createElement("div");
@@ -1363,7 +1369,7 @@
       $table.querySelector(".scrollable").appendChild($body);
     }
     function createFooter() {
-      if (options.footer) {
+      if (tableOptions.footer) {
         const footer = Footer(_table);
         _table.footer = footer;
         $table.appendChild(footer.element);
@@ -1385,19 +1391,19 @@
       }
     }
     function width(width2) {
-      if (width2 == void 0)
+      if (typeof width2 == "undefined")
         return $table.clientWidth;
       $table.style.width = utils2.parseDimension(width2) || "auto";
     }
     function height(height2) {
-      if (height2 == void 0)
+      if (typeof height2 == "undefined")
         return $table.clientHeight;
       $table.style.height = utils2.parseDimension(height2) || "auto";
     }
     function data(data2, meta = false) {
       data2 = data2 || _table._data;
       if (data2.length) {
-        for (const columnName in options.columns) {
+        for (const columnName in tableOptions.columns) {
           data2.forEach((item) => {
             if (!item.hasOwnProperty(columnName))
               item[columnName] = "";
@@ -1412,7 +1418,7 @@
     function load(_data) {
       clear(!!_data);
       data(_data, true).forEach(
-        (item) => addRow(item, false, false)
+        (item) => addRow(item, { insertData: false, setBorders: false })
       );
       _setColumnWidths();
       _setColumnResizable();
@@ -1422,11 +1428,11 @@
     function append(_data) {
       data([..._table._data, ..._data], true);
       _data.forEach(
-        (item) => addRow(item, false, false)
+        (item) => addRow(item, { insertData: false, setBorders: false })
       );
       _setBorders();
     }
-    function reload() {
+    function reload2() {
       load();
     }
     function clear(clearData = true) {
@@ -1436,28 +1442,46 @@
       _table.body.element.innerHTML = "";
       _table.header.cells[0].checked(false);
     }
-    function addRow(data2, insert = true, setBorders = true) {
+    function addRow(data2, options) {
+      const defaultOptions2 = {
+        insertData: true,
+        belowRow: null,
+        setBorders: true
+      };
+      options = { ...defaultOptions2, ...options };
       const row = Row(_table, { data: data2 });
-      _table.rows.push(row);
-      _table.body.element.appendChild(row.element);
+      let index;
       data2.meta = {
         row: {
           id: row.id
         }
       };
-      if (insert)
-        _table._data.push(data2);
-      if (setBorders)
+      if (options.belowRow) {
+        index = _table.rows.indexOf(options.belowRow);
+        _table.rows.splice(index + 1, 0, row);
+        _table.body.element.insertBefore(row.element, options.belowRow.element.nextSibling);
+      } else {
+        _table.rows.push(row);
+        _table.body.element.appendChild(row.element);
+      }
+      if (options.insertData) {
+        if (options.belowRow) {
+          _table._data.splice(index + 1, 0, data2);
+        } else {
+          _table._data.push(data2);
+        }
+      }
+      if (options.setBorders)
         _setBorders();
-      if (options.onAddRow)
-        options.onAddRow({ row });
+      if (tableOptions.onAddRow)
+        tableOptions.onAddRow({ row });
       return row;
     }
     function selectedRows() {
       return _table.rows.filter((x) => x.isSelected);
     }
     function rowsByFieldValue(fieldName, value) {
-      if (fieldName == void 0 || value == void 0)
+      if (typeof fieldName == "undefined" || typeof value == "undefined")
         return;
       return _table.rows.filter(
         (row) => row._data[fieldName] == value
@@ -1479,16 +1503,16 @@
           selected = true;
         }
         row.isSelected = selected;
-        if (options.checkbox) {
+        if (tableOptions.checkbox) {
           row.cells[0].checked(selected);
         } else {
           row.element.classList.toggle("selected", selected);
         }
       });
-      if (options.checkbox)
+      if (tableOptions.checkbox)
         _table.header.cells[0].checked();
-      if (options.onSelectRows)
-        options.onSelectRows({ rows: selectedRows() });
+      if (tableOptions.onSelectRows)
+        tableOptions.onSelectRows({ rows: selectedRows() });
     }
     function unselectRows(event, callback = true) {
       _table.header.cells[0].checked(false);
@@ -1497,11 +1521,11 @@
         row.element.classList.remove("selected");
         row.cells[0].checked(false);
       });
-      if (options.onUnselectRows && callback)
-        options.onUnselectRows({ event });
+      if (tableOptions.onUnselectRows && callback)
+        tableOptions.onUnselectRows({ event });
     }
     function moveSelectedRows2(down = true) {
-      if (options.sort) return;
+      if (tableOptions.sort) return;
       if (down) {
         for (let i = _table.rows.length - 1; i >= 0; i--) {
           let fromIndex = i;
@@ -1528,9 +1552,10 @@
       _table.rows.forEach((row) => _table.body.element.appendChild(row.element));
       function changePosition(fromIndex, toIndex) {
         const row = _table.rows.splice(fromIndex, 1)[0];
-        const item = _table._data.splice(fromIndex, 1)[0];
         _table.rows.splice(toIndex, 0, row);
-        _table._data.splice(toIndex, 0, item);
+        const temp = _table._data[toIndex];
+        _table._data[toIndex] = _table._data[fromIndex];
+        _table._data[fromIndex] = temp;
       }
     }
     function removeRows(rows) {
@@ -1548,8 +1573,8 @@
         });
         row.element.remove();
       });
-      if (options.onRemoveRows)
-        options.onRemoveRows();
+      if (tableOptions.onRemoveRows)
+        tableOptions.onRemoveRows();
     }
     function removeSelectedRows() {
       removeRows(selectedRows());
@@ -1578,10 +1603,10 @@
       _table.isDisabled = disabled;
       $table.classList.toggle("disabled", disabled);
     }
-    function _export(rows, options2 = { separator: "	" }) {
+    function _export(rows, options = { separator: "	" }) {
       let text = (rows || _table.selectedRows()).map((row) => {
         let fieldNames = row.cells.filter((x) => !x.checkbox && !x.isHidden).map((x) => x.options.name);
-        return row.text(fieldNames).join(options2.separator);
+        return row.text(fieldNames).join(options.separator);
       }).join("\n");
       return text;
     }
@@ -1589,10 +1614,10 @@
       let widths = _table._columnWidths;
       if (!widths) {
         widths = [];
-        if (options.checkbox)
+        if (tableOptions.checkbox)
           widths.push("34px");
-        for (let name in options.columns) {
-          let column2 = options.columns[name];
+        for (let name in tableOptions.columns) {
+          let column2 = tableOptions.columns[name];
           if (column2.hidden)
             continue;
           let width2 = column2.width;
@@ -1639,7 +1664,7 @@
         document.addEventListener("mousemove", resize);
         document.addEventListener("mouseup", stopResize);
         currentColumn = _table.header.cell($column.dataset.name);
-        if (!options.resize && !currentColumn.options.resize)
+        if (!tableOptions.resize && !currentColumn.options.resize)
           return;
         $header.classList.add("resizing");
         isResizing = true;
@@ -1674,8 +1699,8 @@
         $header.classList.remove("resizing");
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
-        if (diff && options.onResizeColumn) {
-          options.onResizeColumn({ column: currentColumn, widths: _table._columnWidths });
+        if (diff && tableOptions.onResizeColumn) {
+          tableOptions.onResizeColumn({ column: currentColumn, widths: _table._columnWidths });
           diff = 0;
         }
       }
@@ -1686,7 +1711,7 @@
       _table.body.element.childNodes.forEach(($row, index) => {
         $row.querySelector(".visible:last-child").classList.remove("cell-border-right");
       });
-      let radius = options.footer.hidden ? "inherit" : "0px";
+      let radius = tableOptions.footer.hidden ? "inherit" : "0px";
       _table.elements.scrollable.style.borderBottomLeftRadius = radius;
       _table.elements.scrollable.style.borderbottomRightRadius = radius;
     }
@@ -1819,6 +1844,8 @@
     // boolean - Fechar o modal ao clicar fora
     buttons: [],
     // buttonDefaultOptions[]
+    style: null,
+    // CSSStyleDeclaration
     onHide: null,
     // function (opcional)
     onShow: null
@@ -1887,15 +1914,23 @@
         _elements.content.appendChild(modalOptions.content);
       else
         _elements.content.innerHTML = modalOptions.content;
+      if (modalOptions.style) {
+        Object.assign(_elements.modal.style, modalOptions.style);
+      }
       modalOptions.buttons = modalOptions.buttons || [];
       modalOptions.buttons.forEach((button) => {
         const $button = document.createElement("button");
         $button.type = "button";
-        $button.innerHTML = button.name;
+        $button.innerHTML = /*html*/
+        `<span>${button.name}</span>`;
         $button.classList.toggle("primary", !!button.primary);
         button.element = $button;
-        if (button.onClick)
+        if (button.style) {
+          Object.assign($button.style, button.style);
+        }
+        if (button.onClick) {
           $button.addEventListener("click", () => button.onClick(_context));
+        }
         _elements.buttons.appendChild($button);
       });
       if (modalOptions.buttons.length)
@@ -1984,6 +2019,10 @@
   ];
   var dataTableService = DataTableService();
   function DataTableService() {
+    actions_default.addTableRow = addTableRow;
+    actions_default.addTableRowGroup = addTableRowGroup;
+    actions_default.moveSelectedRows = moveSelectedRows;
+    actions_default.removeSelectedTableRows = removeSelectedTableRows;
     return {
       createTable,
       removeTable,
@@ -2192,7 +2231,8 @@
   }
   function addTableRow() {
     const row = createSrvTableRow();
-    ui_default.activeDataTable.addRow(row);
+    const tableRow = ui_default.activeDataTable.addRow(row, { belowRow: ui_default.activeDataTable.selectedRows()[0] });
+    tableRow.select();
     ui_default.footer_total = ui_default.footer_total["reload"]();
   }
   function addTableRowGroup() {
@@ -2212,9 +2252,12 @@
         {
           name: "Excluir",
           primary: true,
+          focused: true,
           onClick: async (modal) => {
             ui_default.activeDataTable.removeSelectedRows();
             ui_default.footer_total = ui_default.footer_total["reload"]();
+            ui_default.tables_buttons = ui_default.tables_buttons["reload"]();
+            renderIcons();
             modal.hide();
           }
         },
@@ -2222,10 +2265,7 @@
           name: "Cancelar",
           onClick: (modal) => modal.hide()
         }
-      ],
-      onShow: (modal) => {
-        modal.options.buttons[0].element.focus();
-      }
+      ]
     }).show();
   }
 
@@ -2247,12 +2287,12 @@
       { title: "Salvar", icon: Icon("save"), onClick: () => actions_default.saveFile() },
       { title: "Informa\xE7\xF5es do arquivo", icon: Icon("info"), hidden: !appData.srvConfig.info.createdAt, onClick: () => actions_default.showFileInfo() },
       { divider: true, hidden: false },
-      { title: "Carregar dados nas planilhas", icon: Icon("load"), onClick: () => console.log("onClick") },
-      { title: "Limpar dados das planilhas", icon: Icon("clear"), onClick: () => console.log("onClick") },
-      { title: "Enviar por E-mail", icon: Icon("send"), onClick: () => console.log("onClick") }
+      { title: "Carregar dados nas planilhas", icon: Icon("load"), onClick: () => null },
+      { title: "Limpar dados das planilhas", icon: Icon("clear"), onClick: () => null },
+      { title: "Enviar por E-mail", icon: Icon("send"), onClick: () => null }
     ];
     const toolbar_actions_right_buttons = [
-      { title: "Visualizar no dispositivo m\xF3vel", icon: Icon("smartphone"), onClick: () => console.log("onClick") }
+      { title: "Visualizar no dispositivo m\xF3vel", icon: Icon("smartphone"), onClick: () => null }
     ];
     const toolbar_table_buttons = [
       { divider: true, hidden: false },
@@ -2260,7 +2300,10 @@
       { title: "Adicionar item", icon: Icon("add"), onClick: () => actions_default.addTableRow() },
       { title: "Mover item selecionado para cima", icon: Icon("arrowUp"), onClick: () => actions_default.moveSelectedRows(false) },
       { title: "Mover item selecionado para baixo", icon: Icon("arrowDown"), onClick: () => actions_default.moveSelectedRows(true) },
-      { title: "Excluir item selecionado", icon: Icon("close"), onClick: () => actions_default.removeSelectedTableRows() }
+      { title: "Excluir item selecionado", icon: Icon("close"), onClick: () => actions_default.removeSelectedTableRows() },
+      { divider: true, hidden: false },
+      { title: "Carregar dados nesta planilha", icon: Icon("load"), onClick: () => null },
+      { title: "Limpar dados desta planilha", icon: Icon("clear"), onClick: () => null }
     ];
     const $toolbar_actions_left_buttons = html`<div>${() => {
       toolbar_actions_left_buttons.forEach((control, index) => {
@@ -2443,9 +2486,13 @@
   // src/services/NeutralinoService.ts
   var neutralinoService = NeutralinoService();
   function NeutralinoService() {
+    actions_default.exit = exit;
+    actions_default.reload = reload;
     return {
+      exit,
       setWindowTitle,
       setOnWindowClose,
+      reload,
       showFileDialog,
       createDirectory,
       readDirectory,
@@ -2462,6 +2509,35 @@
       storage
     };
   }
+  async function exit() {
+    if (!appData.state.saved) {
+      let result = await actions_default.saveFile(true);
+      if (typeof result == "boolean")
+        await close();
+    } else {
+      await close();
+    }
+    async function close() {
+      const result = await actions_default.closeWorkbook();
+      if (result.error) {
+        Modal({
+          title: "Survey",
+          content: `N\xE3o foi poss\xEDvel fechar o arquivo temp.xls(x)<br>${result.error}`,
+          buttons: [
+            {
+              name: "OK",
+              onClick: async (modal) => {
+                modal.hide();
+              }
+            }
+          ]
+        }).show();
+        return;
+      }
+      await storage("appData", null);
+      await Neutralino.app.exit();
+    }
+  }
   async function setWindowTitle(saved) {
     const config = await Neutralino.app.getConfig();
     const name = config.name;
@@ -2473,33 +2549,8 @@
     }
     return Neutralino.window.setTitle(`${name} - ${version} ${saved ? "" : "*"}`);
   }
-  async function setOnWindowClose() {
-    return Neutralino.events.on("windowClose", async () => {
-      if (!appData.state.saved) {
-        let result = await actions_default.saveFile(true);
-        if (typeof result == "boolean")
-          await close();
-      } else {
-        await close();
-      }
-    });
-    async function close() {
-      const result = await actions_default.closeWorkbook();
-      if (result.error) {
-        Modal({
-          title: "Survey",
-          content: `N\xE3o foi poss\xEDvel fechar o arquivo temp.xls(x)<br>${result.error}`,
-          buttons: [
-            { name: "OK", onClick: async (modal) => {
-              modal.hide();
-            } }
-          ]
-        }).show();
-        return;
-      }
-      await storage("appData", null);
-      await Neutralino.app.exit();
-    }
+  function setOnWindowClose() {
+    return Neutralino.events.on("windowClose", exit);
   }
   async function showFileDialog(options = { title: "", target: "", filters: [] }) {
     const defaultOptions2 = {
@@ -2524,6 +2575,9 @@
     if (entries.length)
       result.data = entries;
     return result;
+  }
+  function reload() {
+    setTimeout(() => location.reload(), 100);
   }
   async function createDirectory(options = { path: "" }) {
     const result = createResult();
@@ -2682,6 +2736,7 @@
   // src/services/SrvService.ts
   var srvService = SrvService();
   function SrvService() {
+    actions_default.closeWorkbook = closeWorkbook;
     return {
       newSrv,
       openSrv,
@@ -3171,11 +3226,6 @@
   actions_default.openFile = openFile2;
   actions_default.saveFile = saveFile;
   actions_default.showFileInfo = showFileInfo;
-  actions_default.closeWorkbook = srvService.closeWorkbook;
-  actions_default.addTableRow = dataTableService.addTableRow;
-  actions_default.addTableRowGroup = dataTableService.addTableRowGroup;
-  actions_default.moveSelectedRows = dataTableService.moveSelectedRows;
-  actions_default.removeSelectedTableRows = dataTableService.removeSelectedTableRows;
   neutralinoService.setWindowTitle();
   neutralinoService.setOnWindowClose();
   start();
@@ -3349,7 +3399,12 @@
         Modal({
           title: "Survey",
           content: `Falha ao salvar ${appData.srvFileName}<br>${result.error.replaceAll("\n", "<br>")}`,
-          buttons: [{ name: "OK", onClick: (modal) => modal.hide() }]
+          buttons: [
+            {
+              name: "OK",
+              onClick: (modal) => modal.hide()
+            }
+          ]
         }).show();
         return "error";
       }
@@ -3364,7 +3419,11 @@
       width: 360,
       hideOut: true,
       buttons: [
-        { name: "OK", primary: true, onClick: () => modal.hide() }
+        {
+          name: "OK",
+          primary: true,
+          onClick: () => modal.hide()
+        }
       ]
     });
     modal.show();

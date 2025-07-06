@@ -1,4 +1,5 @@
 import constants from '../shared/constants';
+import actions from '../shared/actions';
 import { appData } from '../shared/appData';
 import { neutralinoService } from './NeutralinoService';
 import { SrvConfig, createSrvConfig, createSrvInfo, createSrvTable, createSrvTableRow } from '../models/SrvConfig';
@@ -9,6 +10,8 @@ const srvService = SrvService();
 export { srvService };
 
 function SrvService() {
+	actions.closeWorkbook = closeWorkbook;
+
 	return {
 		newSrv,
 		openSrv,

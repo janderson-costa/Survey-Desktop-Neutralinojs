@@ -8,9 +8,14 @@ const neutralinoService = NeutralinoService();
 export { neutralinoService };
 
 function NeutralinoService() {
+	actions.exit = exit;
+	actions.reload = reload;
+
 	return {
+		exit,
 		setWindowTitle,
 		setOnWindowClose,
+		reload,
 		showFileDialog,
 		createDirectory,
 		readDirectory,
@@ -26,6 +31,48 @@ function NeutralinoService() {
 		unzipFile,
 		storage,
 	};
+}
+
+
+// App
+
+async function exit() {
+	if (!appData.state.saved) {
+		let result = await actions.saveFile(true); // true | false | 'error' | 'canceled'
+
+		if (typeof result == 'boolean')
+			await close();
+	} else {
+		await close();
+	}
+
+	async function close() {
+		// Fecha o arquivo temp.xls(x)
+		const result = await actions.closeWorkbook();
+
+		if (result.error) {
+			Modal({
+				title: 'Survey',
+				content: `Não foi possível fechar o arquivo temp.xls(x)<br>${result.error}`,
+				buttons: [
+					{
+						name: 'OK',
+						onClick: async modal => {
+							modal.hide();
+						},
+					},
+				],
+			}).show();
+
+			return;
+		}
+
+		// Limpa o cache
+		await storage('appData', null);
+
+		// Fecha a aplicação
+		await Neutralino.app.exit();
+	}
 }
 
 
@@ -45,42 +92,8 @@ async function setWindowTitle(saved?: any) {
 	return Neutralino.window.setTitle(`${name} - ${version} ${saved ? '' : '*'}`);
 }
 
-async function setOnWindowClose() {
-	return Neutralino.events.on('windowClose', async () => {
-		if (!appData.state.saved) {
-			let result = await actions.saveFile(true); // true | false | 'error' | 'canceled'
-
-			if (typeof result == 'boolean')
-				await close();
-		} else {
-			await close();
-		}
-	});
-
-	async function close() {
-		// Fecha o arquivo temp.xls(x)
-		const result = await actions.closeWorkbook();
-
-		if (result.error) {
-			Modal({
-				title: 'Survey',
-				content: `Não foi possível fechar o arquivo temp.xls(x)<br>${result.error}`,
-				buttons: [
-					{ name: 'OK', onClick: async modal => {
-						modal.hide();
-					}},
-				],
-			}).show();
-
-			return;
-		}
-
-		// Limpa o cache
-		await storage('appData', null);
-
-		// Fecha a aplicação
-		await Neutralino.app.exit();
-	}
+function setOnWindowClose() {
+	return Neutralino.events.on('windowClose', exit);
 }
 
 async function showFileDialog(options = { title: '', target: '', filters: [] }) {
@@ -112,6 +125,10 @@ async function showFileDialog(options = { title: '', target: '', filters: [] }) 
 		result.data = entries;
 
 	return result;
+}
+
+function reload() {
+	setTimeout(() => location.reload(), 100);
 }
 
 

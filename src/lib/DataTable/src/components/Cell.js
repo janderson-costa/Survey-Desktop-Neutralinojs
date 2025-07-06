@@ -1,14 +1,14 @@
 import { utils } from '../utils.js';
 
-export function Cell(table, options) {
-	// options: CellOptions
+export function Cell(table, cellOptions) {
+	// cellOptions: CellOptions
 
 	const $cell = create();
 	const _cell = {
 		element: $cell,
-		isHidden: options.hidden,
-		isDisabled: options.disabled,
-		options,
+		isHidden: cellOptions.hidden,
+		isDisabled: cellOptions.disabled,
+		options: cellOptions,
 		value,
 		display,
 		checked,
@@ -17,8 +17,8 @@ export function Cell(table, options) {
 		disable,
 	};
 
-	show(!options.hidden);
-	showContent(!options.hidden);
+	show(!cellOptions.hidden);
+	showContent(!cellOptions.hidden);
 	display(value());
 
 	return _cell;
@@ -28,7 +28,7 @@ export function Cell(table, options) {
 
 		$cell.classList.add('dt-body-row-cell');
 
-		if (options.checkbox) {
+		if (cellOptions.checkbox) {
 			$cell.classList.add('checkbox');
 			$cell.insertAdjacentHTML('afterbegin', /*html*/`
 				<label class="dt-row-checkbox">
@@ -41,13 +41,13 @@ export function Cell(table, options) {
 			$checkbox.addEventListener('click', event => event.stopPropagation());
 			$checkbox.addEventListener('change', event => {
 				table.header.cells[0].checked(false);
-				options.row.select(event.target.checked, event);
+				cellOptions.row.select(event.target.checked, event);
 			});
 		} else {
-			const value = options.value != undefined ? options.value : '';
-			const cell = table.options.cells ? table.options.cells[options.name] || {} : {};
+			const value = typeof cellOptions.value != 'undefined' ? cellOptions.value : '';
+			const cell = table.options.cells ? table.options.cells[cellOptions.name] || {} : {};
 
-			$cell.dataset.name = options.name;
+			$cell.dataset.name = cellOptions.name;
 			$cell.insertAdjacentHTML('afterbegin', /*html*/`
 				<div class="value-hidden">${value}</div>
 				<div class="value-display">${value}</div>
@@ -73,14 +73,14 @@ export function Cell(table, options) {
 		if (!$value)
 			return;
 
-		if (value != undefined) {
-			options.data[options.name] = value;
+		if (typeof value != 'undefined') {
+			cellOptions.data[cellOptions.name] = value;
 			$value.textContent = value;
 
 			if (_display)
 				display(value);
 		} else {
-			value = options.value != undefined ? options.value : $value.textContent;
+			value = typeof cellOptions.value != 'undefined' ? cellOptions.value : $value.textContent;
 
 			return value;
 		}
@@ -90,12 +90,12 @@ export function Cell(table, options) {
 		// Obs.: Preferir usar através cell('name').value(any)
 
 		const $display = $cell.querySelector('.value-display');
-		const cell = table.options.cells ? table.options.cells[options.name] || {} : {};
+		const cell = table.options.cells ? table.options.cells[cellOptions.name] || {} : {};
 
 		if (cell.display) {
 			const result = cell.display({
-				row: options.row,
-				item: options.data,
+				row: cellOptions.row,
+				item: cellOptions.data,
 				value,
 			});
 
