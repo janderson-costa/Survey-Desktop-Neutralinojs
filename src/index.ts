@@ -1,5 +1,6 @@
 Neutralino.init();
 
+import config from '../config.json';
 import actions from './shared/actions';
 import ui from './shared/ui';
 import proxy from './shared/proxy';
@@ -19,6 +20,7 @@ let _observeDataChanges: boolean;
 actions.newFile = newFile;
 actions.openFile = openFile;
 actions.saveFile = saveFile;
+actions.saveFileAs = saveFileAs;
 actions.showFileInfo = showFileInfo;
 
 neutralinoService.setWindowTitle();
@@ -26,7 +28,7 @@ neutralinoService.setOnWindowClose();
 //neutralinoService.storage('appData', null); // ! *** Habilitar para produção ***
 
 start();
-//observeSheets();
+observeSheets();
 
 async function start() {
 	constants.root_path = await Neutralino.filesystem.getAbsolutePath(NL_PATH);
@@ -76,7 +78,7 @@ async function newFile(confirmSave = true) {
 
 		// Salva o arquivo atual
 		if (confirmSave && !state.saved) {
-			const saved = await saveFile(!state.saved);
+			const saved = await saveFile({ confirm: !state.saved });
 
 			// Salvar | Não salvar
 			if (typeof saved == 'boolean')
@@ -90,7 +92,7 @@ async function newFile(confirmSave = true) {
 			target: 'open',
 			title: 'Novo',
 			filters: [
-				{ name: 'Excel', extensions: ['xlsx', 'xls'] },
+				{ name: 'Excel (*.xlsx, *.xls)', extensions: ['xlsx', 'xls'] },
 			],
 		});
 
@@ -137,7 +139,7 @@ async function openFile(confirmSave = true) {
 
 		// Salva o arquivo atual
 		if (confirmSave && !state.saved) {
-			const saved = await saveFile(!state.saved);
+			const saved = await saveFile({ confirm: !state.saved });
 
 			// Salvar | Não salvar
 			if (typeof saved == 'boolean')
@@ -150,7 +152,7 @@ async function openFile(confirmSave = true) {
 		let result = await neutralinoService.showFileDialog({
 			target: 'open',
 			title: 'Abrir',
-			filters: [{ name: 'Survey', extensions: ['srv'] }],
+			filters: [{ name: 'Survey (*.srv)', extensions: ['srv'] }],
 		});
 
 		if (result.canceled) {
@@ -189,11 +191,14 @@ async function openFile(confirmSave = true) {
 	}
 }
 
-async function saveFile(confirm = false) {
-	// Retorna true | false | 'error' | 'canceled'
+type SaveFileOptions = {
+	confirm?: boolean;
+	caller?: string;
+}
 
+async function saveFile(options: SaveFileOptions = { confirm: false, caller: null }): Promise<true | false | 'error' | 'canceled'> {
 	// Confirmar se deseja salvar as alterações
-	if (confirm) {
+	if (options.confirm) {
 		return new Promise(async resolve => {
 			Modal({
 				title: 'Survey',
@@ -210,6 +215,7 @@ async function saveFile(confirm = false) {
 						},
 					},
 					{
+						show: options.caller != 'saveAs',
 						name: 'Não salvar', onClick: modal => {
 							modal.hide();
 							resolve(false);
@@ -221,7 +227,7 @@ async function saveFile(confirm = false) {
 							resolve('canceled');
 						},
 					},
-				],
+				].filter(x => x.show != false),
 				onShow: modal => {
 					modal.options.buttons[0].element.focus();
 				}
@@ -233,13 +239,12 @@ async function saveFile(confirm = false) {
 	}
 
 	async function save() {
-		console.log(appData.srvFilePath);
 		// Novo arquivo
 		if (!appData.srvFilePath) {
 			let result = await neutralinoService.showFileDialog({
 				target: 'save',
 				title: 'Novo',
-				filters: [{ name: 'Survey', extensions: ['srv'] }],
+				filters: [{ name: 'Survey (*.srv)', extensions: ['srv'] }],
 			});
 
 			if (result.canceled) {
@@ -275,6 +280,14 @@ async function saveFile(confirm = false) {
 
 		return true;
 	}
+}
+
+async function saveFileAs() {
+	const saved = await saveFile({ confirm: !appData.state.saved, caller: 'saveAs' });
+
+	if (saved != true) return;
+
+	//..
 }
 
 function showFileInfo() {

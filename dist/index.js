@@ -4,6 +4,7 @@
     newFile: null,
     openFile: null,
     saveFile: null,
+    saveFileAs: null,
     closeWorkbook: null,
     showFileInfo: null,
     addTableRow: null,
@@ -399,7 +400,7 @@
         { name: "Novo", onClick: () => actions_default.newFile() },
         { name: "Abrir", onClick: () => actions_default.openFile() },
         { name: "Salvar", onClick: () => actions_default.saveFile() },
-        { name: "Salvar Como", onClick: () => null },
+        { name: "Salvar Como", onClick: () => actions_default.saveFileAs() },
         { divider: true },
         { name: "Enviar por E-mail", onClick: () => null },
         { divider: true },
@@ -2516,7 +2517,7 @@
   }
   async function exit() {
     if (!appData.state.saved) {
-      let result = await actions_default.saveFile(true);
+      let result = await actions_default.saveFile({ confirm: true });
       if (typeof result == "boolean")
         await close();
     } else {
@@ -2540,7 +2541,6 @@
         return;
       }
       await storage("appData", null);
-      await Neutralino.app.exit();
     }
   }
   async function setWindowTitle(saved) {
@@ -2746,6 +2746,7 @@
       newSrv,
       openSrv,
       saveSrv,
+      saveSrvAs,
       getSheets,
       saveWorkbook,
       closeWorkbook
@@ -2939,6 +2940,8 @@
       console.log(result.error);
     }
     return result;
+  }
+  async function saveSrvAs(filePath) {
   }
   async function saveWorkbook() {
     const tempFileName = appData.excelFileName;
@@ -3230,10 +3233,12 @@
   actions_default.newFile = newFile;
   actions_default.openFile = openFile2;
   actions_default.saveFile = saveFile;
+  actions_default.saveFileAs = saveFileAs;
   actions_default.showFileInfo = showFileInfo;
   neutralinoService.setWindowTitle();
   neutralinoService.setOnWindowClose();
   start();
+  observeSheets();
   async function start() {
     constants_default.root_path = await Neutralino.filesystem.getAbsolutePath(NL_PATH);
     const appDataStored = await neutralinoService.storage("appData");
@@ -3265,7 +3270,7 @@
       appData.state.creating = true;
       const state = appData.state;
       if (confirmSave && !state.saved) {
-        const saved = await saveFile(!state.saved);
+        const saved = await saveFile({ confirm: !state.saved });
         if (typeof saved == "boolean")
           newFile(false);
         return;
@@ -3274,7 +3279,7 @@
         target: "open",
         title: "Novo",
         filters: [
-          { name: "Excel", extensions: ["xlsx", "xls"] }
+          { name: "Excel (*.xlsx, *.xls)", extensions: ["xlsx", "xls"] }
         ]
       });
       if (result.canceled) {
@@ -3306,7 +3311,7 @@
       appData.state.opening = true;
       const state = appData.state;
       if (confirmSave && !state.saved) {
-        const saved = await saveFile(!state.saved);
+        const saved = await saveFile({ confirm: !state.saved });
         if (typeof saved == "boolean")
           openFile2(false);
         return;
@@ -3314,7 +3319,7 @@
       let result = await neutralinoService.showFileDialog({
         target: "open",
         title: "Abrir",
-        filters: [{ name: "Survey", extensions: ["srv"] }]
+        filters: [{ name: "Survey (*.srv)", extensions: ["srv"] }]
       });
       if (result.canceled) {
         return result;
@@ -3341,8 +3346,8 @@
       appData.state.opening = false;
     }
   }
-  async function saveFile(confirm = false) {
-    if (confirm) {
+  async function saveFile(options = { confirm: false, caller: null }) {
+    if (options.confirm) {
       return new Promise(async (resolve) => {
         Modal(
           {
@@ -3360,6 +3365,7 @@
                 }
               },
               {
+                show: options.caller != "saveAs",
                 name: "N\xE3o salvar",
                 onClick: (modal) => {
                   modal.hide();
@@ -3373,7 +3379,7 @@
                   resolve("canceled");
                 }
               }
-            ],
+            ].filter((x) => x.show != false),
             onShow: (modal) => {
               modal.options.buttons[0].element.focus();
             }
@@ -3384,12 +3390,11 @@
       return save();
     }
     async function save() {
-      console.log(appData.srvFilePath);
       if (!appData.srvFilePath) {
         let result2 = await neutralinoService.showFileDialog({
           target: "save",
           title: "Novo",
-          filters: [{ name: "Survey", extensions: ["srv"] }]
+          filters: [{ name: "Survey (*.srv)", extensions: ["srv"] }]
         });
         if (result2.canceled) {
           return "canceled";
@@ -3417,6 +3422,10 @@
       return true;
     }
   }
+  async function saveFileAs() {
+    const saved = await saveFile({ confirm: !appData.state.saved, caller: "saveAs" });
+    if (saved != true) return;
+  }
   function showFileInfo() {
     const modal = Modal({
       title: "Informa\xE7\xF5es do arquivo",
@@ -3432,5 +3441,69 @@
       ]
     });
     modal.show();
+  }
+  async function observeSheets() {
+    await Utils_default.pause(1e3);
+    if (appData.state.creating || appData.state.opening || !appData.state.opened) {
+      observeSheets();
+      return;
+    }
+    ;
+    const result = await srvService.getSheets();
+    if (result.data) {
+      if (JSON.stringify(appData.sheets.map((x) => x.name)) == JSON.stringify(result.data.map((x) => x.name))) {
+        observeSheets();
+        return;
+      }
+      appData.sheets = result.data;
+      const currentSrvTables = [];
+      appData.sheets.forEach((sheet) => {
+        const srvTable = createSrvTable();
+        srvTable.id = sheet.id;
+        srvTable.name = sheet.name;
+        srvTable.enabled = false;
+        currentSrvTables.push(srvTable);
+      });
+      currentSrvTables.forEach((currentSrvTable, index) => {
+        const srvTable = appData.srvConfig.data.tables.find((x) => x.id == currentSrvTable.id);
+        let add = true;
+        if (srvTable) {
+          currentSrvTables[index] = srvTable;
+          add = false;
+        }
+        if (add) {
+          const dt = dataTableService.createTable(currentSrvTable.id);
+          dt.load(currentSrvTable.rows);
+          ui_default.tables.appendChild(dt.element);
+        }
+      });
+      appData.srvConfig.data.tables.forEach((srvTable) => {
+        if (!currentSrvTables.some((currentSrvTable) => currentSrvTable.id == srvTable.id)) {
+          dataTableService.removeTable(srvTable.id);
+          if (ui_default.activeDataTable.id == srvTable.id) {
+            ui_default.activeDataTable = null;
+            ui_default.tables_buttons = ui_default.tables_buttons["reload"]();
+          }
+        }
+      });
+      proxy_default.appData.srvConfig.data.tables = currentSrvTables;
+      ui_default.tables_tabs = ui_default.tables_tabs["reload"]();
+    } else {
+      Modal({
+        title: "Survey",
+        content: "Mantenha o arquivo temp.xls(x) aberto enquanto executa o aplicativo.",
+        hideOut: false,
+        buttons: [
+          { name: "OK", onClick: (modal) => modal.hide() }
+        ],
+        onHide: async (modal) => {
+          await neutralinoService.openFile({ filePath: `${constants_default.temp_folder_path}/${appData.excelFileName}` });
+          await Utils_default.pause(5e3);
+          observeSheets();
+        }
+      }).show();
+      return;
+    }
+    observeSheets();
   }
 })();

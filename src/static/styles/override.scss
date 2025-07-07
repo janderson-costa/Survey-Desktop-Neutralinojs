@@ -16,14 +16,18 @@
     }
 }
 
-.modal {
-    .modal-content {
-        user-select: text !important;
-    }
+.modal-overlay {
+    .modal {
+        min-width: 400px;
 
-    .modal-buttons {
-        button {
-            padding-bottom: 1px !important;
+        .modal-content {
+            user-select: text !important;
+        }
+
+        .modal-buttons {
+            button {
+                padding-bottom: 1px !important;
+            }
         }
     }
 }

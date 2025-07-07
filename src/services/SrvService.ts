@@ -16,6 +16,7 @@ function SrvService() {
 		newSrv,
 		openSrv,
 		saveSrv,
+		saveSrvAs,
 		getSheets,
 		saveWorkbook,
 		closeWorkbook,
@@ -301,6 +302,10 @@ async function saveSrv(srvConfig: SrvConfig) {
 	}
 
 	return result;
+}
+
+async function saveSrvAs(filePath: string) {
+	
 }
 
 async function saveWorkbook() {

@@ -38,7 +38,7 @@ function NeutralinoService() {
 
 async function exit() {
 	if (!appData.state.saved) {
-		let result = await actions.saveFile(true); // true | false | 'error' | 'canceled'
+		let result = await actions.saveFile({ confirm: true }); // true | false | 'error' | 'canceled'
 
 		if (typeof result == 'boolean')
 			await close();
@@ -71,7 +71,7 @@ async function exit() {
 		await storage('appData', null);
 
 		// Fecha a aplicação
-		await Neutralino.app.exit();
+		//await Neutralino.app.exit();
 	}
 }
 

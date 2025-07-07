@@ -9,7 +9,7 @@ const menubar = [
 			{ name: 'Novo', onClick: () => actions.newFile() },
 			{ name: 'Abrir', onClick: () => actions.openFile() },
 			{ name: 'Salvar', onClick: () => actions.saveFile() },
-			{ name: 'Salvar Como', onClick: () => null },
+			{ name: 'Salvar Como', onClick: () => actions.saveFileAs() },
 			{ divider: true },
 			{ name: 'Enviar por E-mail', onClick: () => null },
 			{ divider: true },

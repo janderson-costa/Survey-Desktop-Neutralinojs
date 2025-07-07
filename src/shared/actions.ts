@@ -2,6 +2,7 @@ const actions = {
 	newFile: null,
 	openFile: null,
 	saveFile: null,
+	saveFileAs: null,
 	closeWorkbook: null,
 	showFileInfo: null,
 	addTableRow: null,
